@@ -57,6 +57,9 @@ export abstract class BaseScene extends Scene {
         const config = this.getLevelConfig();
         this.mobileControlsRef = this.registry.get("controlsRef");
 
+        // CORREÇÃO 1: Arredondar pixels evita tremor visual da câmera seguindo o player
+        this.cameras.main.roundPixels = true;
+
         this.createGlobalAnimations();
         this.setupMap(config);
         this.setupControls();
@@ -160,7 +163,10 @@ export abstract class BaseScene extends Scene {
             spawnPoint?.y || 300,
             "player_idle",
         );
-        this.player.body?.setSize(18, 25);
+
+        // Configuração para o GANGSTA (128x128)
+        this.player.body?.setSize(40, 100);
+        this.player.body?.setOffset(7, 10);
         this.player.setCollideWorldBounds(true);
         this.player.setDepth(2);
 
@@ -190,7 +196,6 @@ export abstract class BaseScene extends Scene {
             });
         }
     }
-
     private createMobs(map: Phaser.Tilemaps.Tilemap) {
         const enemyLayer = map.getObjectLayer("enemies");
 
@@ -237,7 +242,8 @@ export abstract class BaseScene extends Scene {
         if (!this.player || !this.player.body) return;
 
         this.handleMovement();
-        this.handleAnimations();
+        this.player.anims.play("idle", true);
+        // this.handleAnimations();
         this.handleGroundEffects();
         this.handleMobsAI();
 
@@ -257,6 +263,7 @@ export abstract class BaseScene extends Scene {
     }
 
     protected handleMobsAI() {
+        return;
         this.mobsGroup.children.entries.forEach((m) => {
             const mob = m as Phaser.Physics.Arcade.Sprite;
             const body = mob.body as Phaser.Physics.Arcade.Body;
@@ -452,7 +459,7 @@ export abstract class BaseScene extends Scene {
         } else if (this.canDoubleJump) {
             this.player.setVelocityY(-230);
             this.canDoubleJump = false;
-            this.player.play("double_jump", true);
+            // this.player.play("double_jump", true);
             this.sounds.jump.play({ detune: 200 });
             this.explodeDust(6);
         }
