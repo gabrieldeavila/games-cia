@@ -89,6 +89,7 @@ export abstract class BaseScene extends Scene {
 
     private setupMap(config: LevelConfig) {
         this.map = this.make.tilemap({ key: config.mapId });
+        console.log(this.map);
         const tileset = this.map.addTilesetImage(
             "terrain",
             config.tileSetTerrain,
@@ -165,8 +166,8 @@ export abstract class BaseScene extends Scene {
         );
 
         // Configuração para o GANGSTA (128x128)
-        this.player.body?.setSize(40, 100);
-        this.player.body?.setOffset(7, 10);
+        this.player.body?.setSize(20, 40);
+        this.player.body?.setOffset(6, 2);
         this.player.setCollideWorldBounds(true);
         this.player.setDepth(2);
 
@@ -243,7 +244,7 @@ export abstract class BaseScene extends Scene {
 
         this.handleMovement();
         this.player.anims.play("idle", true);
-        // this.handleAnimations();
+        this.handleAnimations();
         this.handleGroundEffects();
         this.handleMobsAI();
 
@@ -491,7 +492,7 @@ export abstract class BaseScene extends Scene {
             this.player.anims.currentAnim?.key === "double_jump" &&
             this.player.anims.isPlaying;
         if (isWallSliding) {
-            this.player.anims.play("wall_jump", true);
+            // this.player.anims.play("wall_jump", true);
             if (playerBody.blocked.left) this.player.setFlipX(true);
             if (playerBody.blocked.right) this.player.setFlipX(false);
         } else if (!isGrounded) {
@@ -501,9 +502,9 @@ export abstract class BaseScene extends Scene {
                 else this.player.anims.play("fall", true);
             }
         } else {
-            if (playerBody.velocity.x !== 0)
-                this.player.anims.play("run", true);
-            else this.player.anims.play("idle", true);
+            if (playerBody.velocity.x !== 0) {
+                // this.player.anims.play("run", true);
+            } else this.player.anims.play("idle", true);
         }
     }
 

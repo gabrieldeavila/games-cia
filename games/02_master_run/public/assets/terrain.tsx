@@ -16,4 +16,19 @@
    <property name="through" type="bool" value="true"/>
   </properties>
  </tile>
+ <tile id="61">
+  <properties>
+   <property name="through" type="bool" value="true"/>
+  </properties>
+ </tile>
+ <tile id="62">
+  <properties>
+   <property name="through" type="bool" value="true"/>
+  </properties>
+ </tile>
+ <tile id="63">
+  <properties>
+   <property name="through" type="bool" value="true"/>
+  </properties>
+ </tile>
 </tileset>

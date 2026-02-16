@@ -30,7 +30,7 @@ export class Preloader extends Scene {
         this.load.image("logo", "logo.png");
         this.load.image("star", "star.png");
 
-        this.load.tilemapTiledJSON("mapa_fase1", "level1.json");
+        this.load.tilemapTiledJSON("mapa_fase1", "who/level.json");
         this.load.image("terrain-tiles", "terrain.png");
         this.load.image("blue-img", "Blue.png");
 
@@ -53,20 +53,24 @@ export class Preloader extends Scene {
 
         // 4. O Spritesheet do Player (Sapinho/Mascarado)
         this.load.spritesheet("player_idle", "vorc/idle.png", {
-            frameWidth: 50, // Ajuste para a largura real do arquivo gangsta.png
-            frameHeight: 128,
+            frameWidth: 297 / 9, // Ajuste para a largura real do arquivo gangsta.png
+            frameHeight: 45,
         });
+        // this.load.spritesheet("player_idle", "vorc/idle.png", {
+        //     frameWidth: 50, // Ajuste para a largura real do arquivo gangsta.png
+        //     frameHeight: 128,
+        // });
         this.load.spritesheet("player_run", "ninja/Run (32x32).png", {
             frameWidth: 32,
             frameHeight: 32,
         });
-        this.load.spritesheet("player_jump", "ninja/Jump (32x32).png", {
-            frameWidth: 32,
-            frameHeight: 32,
+        this.load.spritesheet("player_jump", "vorc/jump.png", {
+            frameWidth: 33,
+            frameHeight: 45,
         });
-        this.load.spritesheet("player_fall", "ninja/Fall (32x32).png", {
-            frameWidth: 32,
-            frameHeight: 32,
+        this.load.spritesheet("player_fall", "vorc/fall.png", {
+            frameWidth: 33,
+            frameHeight: 45,
         });
         this.load.spritesheet(
             "player_wall_jump",
