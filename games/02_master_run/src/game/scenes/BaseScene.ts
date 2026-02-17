@@ -243,7 +243,6 @@ export abstract class BaseScene extends Scene {
         if (!this.player || !this.player.body) return;
 
         this.handleMovement();
-        this.player.anims.play("idle", true);
         this.handleAnimations();
         this.handleGroundEffects();
         this.handleMobsAI();
@@ -264,7 +263,6 @@ export abstract class BaseScene extends Scene {
     }
 
     protected handleMobsAI() {
-        return;
         this.mobsGroup.children.entries.forEach((m) => {
             const mob = m as Phaser.Physics.Arcade.Sprite;
             const body = mob.body as Phaser.Physics.Arcade.Body;
@@ -503,7 +501,7 @@ export abstract class BaseScene extends Scene {
             }
         } else {
             if (playerBody.velocity.x !== 0) {
-                // this.player.anims.play("run", true);
+                this.player.anims.play("run", true);
             } else this.player.anims.play("idle", true);
         }
     }
@@ -597,7 +595,7 @@ export abstract class BaseScene extends Scene {
             key: "idle",
             frames: this.anims.generateFrameNumbers("player_idle", {
                 start: 0,
-                end: 10,
+                end: 6,
             }),
             frameRate: 20,
             repeat: -1,
@@ -606,7 +604,7 @@ export abstract class BaseScene extends Scene {
             key: "run",
             frames: this.anims.generateFrameNumbers("player_run", {
                 start: 0,
-                end: 11,
+                end: 6,
             }),
             frameRate: 20,
             repeat: -1,

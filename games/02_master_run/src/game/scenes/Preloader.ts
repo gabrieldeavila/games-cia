@@ -60,9 +60,9 @@ export class Preloader extends Scene {
         //     frameWidth: 50, // Ajuste para a largura real do arquivo gangsta.png
         //     frameHeight: 128,
         // });
-        this.load.spritesheet("player_run", "ninja/Run (32x32).png", {
-            frameWidth: 32,
-            frameHeight: 32,
+        this.load.spritesheet("player_run", "vorc/run.png", {
+            frameWidth: 204 / 6,
+            frameHeight: 45,
         });
         this.load.spritesheet("player_jump", "vorc/jump.png", {
             frameWidth: 33,
