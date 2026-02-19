@@ -30,8 +30,8 @@ export class Preloader extends Scene {
         this.load.image("logo", "logo.png");
         this.load.image("star", "star.png");
 
-        this.load.tilemapTiledJSON("mapa_fase1", "who/level.json");
-        this.load.image("terrain-tiles", "terrain.png");
+        this.load.tilemapTiledJSON("mapa_fase1", "map/level.json");
+        this.load.image("terrain-tiles", "map/Tilemap_color1.png");
         this.load.image("blue-img", "Blue.png");
 
         this.load.spritesheet("strawberry", "Strawberry.png", {

@@ -33,6 +33,9 @@ export abstract class BaseScene extends Scene {
     protected stepTimer: number = 0;
     protected wallSlideTimer: number = 0;
     protected dustTimer: number = 0;
+    
+    // Controle de Limites da Ilha
+    private lastValidPosition: Phaser.Math.Vector2 = new Phaser.Math.Vector2(0, 0);
 
     // Efeitos, Itens e Mobs
     protected dustEmitter: Phaser.GameObjects.Particles.ParticleEmitter;
@@ -54,10 +57,20 @@ export abstract class BaseScene extends Scene {
     abstract getLevelConfig(): LevelConfig;
 
     create() {
+        // 1. Criar o mapa usando a chave definida no Preloader ('mapa_fase1')
+        const map = this.make.tilemap({ key: "mapa_fase1" });
+
+        // --- DEBUG RÁPIDO PARA DESCOBRIR OS NOMES ---
+        console.log("NOME DO TILESET:", map.tilesets[0].name);
+        console.log(
+            "NOMES DAS LAYERS:",
+            map.layers.map((l) => l.name),
+        );
+
         const config = this.getLevelConfig();
         this.mobileControlsRef = this.registry.get("controlsRef");
 
-        // CORREÇÃO 1: Arredondar pixels evita tremor visual da câmera seguindo o player
+        // CORREÇÃO: Arredondar pixels evita tremor visual da câmera seguindo o player
         this.cameras.main.roundPixels = true;
 
         this.createGlobalAnimations();
@@ -84,14 +97,22 @@ export abstract class BaseScene extends Scene {
         this.setupParticles();
         this.setupCamera();
 
+        // GARANTIR gravidade zero no início (Top-Down)
+        this.physics.world.gravity.y = 0;
+        
+        // Inicializa a última posição válida com a posição de spawn
+        if (this.player) {
+            this.lastValidPosition.set(this.player.x, this.player.y);
+        }
+
         this.afterCreate();
     }
 
     private setupMap(config: LevelConfig) {
         this.map = this.make.tilemap({ key: config.mapId });
-        console.log(this.map);
+
         const tileset = this.map.addTilesetImage(
-            "terrain",
+            "Tilemap_color1",
             config.tileSetTerrain,
         );
         const bgKey = config.blueTileKey || config.tileSetBackground;
@@ -122,9 +143,12 @@ export abstract class BaseScene extends Scene {
         }
 
         this.worldLayer = this.map.createLayer("world", tileset!, 0, 0)!;
-        this.worldLayer.setCollisionByExclusion([-1]);
+        this.worldLayer.setCollisionByProperty({ collides: true });
         this.worldLayer.setDepth(0);
-
+        
+        // Configura gravidade zero especificamente para este mundo
+        this.physics.world.gravity.y = 0;
+        
         this.worldLayer.forEachTile((tile) => {
             if (tile.properties.through) {
                 tile.setCollision(false, false, true, false);
@@ -152,6 +176,7 @@ export abstract class BaseScene extends Scene {
 
     private setupPlayerAndFinish() {
         const playerLayer = this.map.getObjectLayer("player");
+        // Tenta achar Spawn Point, senão usa coordenadas padrão
         const spawnPoint = playerLayer?.objects.find(
             (obj) => obj.name === "PlayerSpawn",
         );
@@ -165,9 +190,11 @@ export abstract class BaseScene extends Scene {
             "player_idle",
         );
 
-        // Configuração para o GANGSTA (128x128)
-        this.player.body?.setSize(20, 40);
-        this.player.body?.setOffset(6, 2);
+        // --- AJUSTE DE HITBOX (CORPO FÍSICO) ---
+        // Ajustamos para ficar bem focado na parte inferior do sprite
+        this.player.body?.setSize(20, 24); 
+        this.player.body?.setOffset(6, 21); // Desce a hitbox para cobrir só as pernas/pés
+        
         this.player.setCollideWorldBounds(true);
         this.player.setDepth(2);
 
@@ -213,22 +240,19 @@ export abstract class BaseScene extends Scene {
 
             mob.setOrigin(0.5, 1);
 
-            // Hitbox do caranguejo
             const bodyWidth = 30;
             const bodyHeight = 22;
 
             if (mob.body) {
                 const body = mob.body as Phaser.Physics.Arcade.Body;
                 body.setSize(bodyWidth, bodyHeight);
-
-                // AJUSTE PARA NÃO VOAR: Offset Y aumentado para baixar o sprite
                 const offsetX = (mob.width - bodyWidth) / 2;
                 const offsetY = mob.height - bodyHeight - 8;
                 body.setOffset(offsetX, offsetY);
-                body.setGravityY(800);
+                // Mobs também não devem cair no Top-Down, a menos que seja intencional
+                body.setGravityY(0); 
             }
 
-            // Estados iniciais
             mob.setData("state", "run");
             mob.setData("direction", -1);
             mob.setVelocityX(-60);
@@ -246,6 +270,7 @@ export abstract class BaseScene extends Scene {
         this.handleAnimations();
         this.handleGroundEffects();
         this.handleMobsAI();
+        this.checkMapBounds(); // Adicionada verificação de limites da ilha
 
         if (this.skyBackground) {
             this.skyBackground.tilePositionX = this.cameras.main.scrollX * 0.1;
@@ -262,63 +287,62 @@ export abstract class BaseScene extends Scene {
         }
     }
 
+    /**
+     * Garante que o jogador fique apenas nos tiles desenhados (grama)
+     * e não ande no "vazio" (fundo azul).
+     */
+    private checkMapBounds() {
+        if (!this.player || !this.worldLayer || !this.player.body) return;
+
+        // Por padrão, verifica o centro
+        let checkX = this.player.body.center.x;
+
+        // AJUSTE LATERAL:
+        // Verifica a borda para onde o jogador está indo.
+        // REMOVIDO os offsets (+4/-4) para garantir que a hitbox não saia nem 1 pixel.
+        if (this.player.body.velocity.x < 0) {
+            // Indo para a ESQUERDA: Verifica o limite esquerdo exato da hitbox
+            checkX = this.player.body.x - 10;
+        } else if (this.player.body.velocity.x > 0) {
+            // Indo para a DIREITA: Verifica o limite direito exato da hitbox
+            checkX = this.player.body.right + 10;
+        }
+        
+        // CONFIGURAÇÃO DO LIMITE VERTICAL (Topo/Baixo)
+        let checkY = this.player.body.bottom - 2;
+
+        // DETECÇÃO DE TOPO
+        // Se estiver subindo, verifica o centro vertical (cintura) para dar profundidade
+        if (this.player.body.velocity.y < 0) {
+            checkY = this.player.body.center.y - 10; 
+        } else if (this.player.body.velocity.y > 0) {
+            // Descendo, verifica a borda inferior da hitbox
+            checkY = this.player.body.bottom + 10;
+        }
+
+        // Verifica se tem tile na camada 'world' nesta coordenada
+        // O terceiro parametro 'true' filtra tiles vazios (index -1)
+        const tile = this.worldLayer.getTileAtWorldXY(checkX, checkY, true);
+
+        // ATENÇÃO: Se você pintou "água" na camada 'world', o tile vai existir e o boneco vai andar.
+        // A camada 'world' deve ter APENAS a grama/chão.
+        if (tile && tile.index !== -1) {
+            // Se tem tile (grama), atualiza a última posição válida
+            this.lastValidPosition.set(this.player.x, this.player.y);
+        } else {
+            // Se não tem tile (é buraco/água), TELEPORTA de volta e PARA O MOVIMENTO
+            this.player.setPosition(this.lastValidPosition.x, this.lastValidPosition.y);
+            this.player.setVelocity(0, 0); 
+        }
+    }
+
     protected handleMobsAI() {
+        // Simplificado para evitar erros no Top-Down
+        // Se precisar de IA complexa, precisaria adaptar para andar em Y também
         this.mobsGroup.children.entries.forEach((m) => {
             const mob = m as Phaser.Physics.Arcade.Sprite;
-            const body = mob.body as Phaser.Physics.Arcade.Body;
-            if (!body) return;
-
-            const state = mob.getData("state");
-            let direction = mob.getData("direction");
-
-            if (state === "idle") {
-                // Estado parado
-                mob.setVelocityX(0);
-                const idleTimer = mob.getData("idleTimer");
-
-                if (this.time.now > idleTimer) {
-                    // Acabou o tempo de espera, volta a correr
-                    mob.setData("state", "run");
-                    mob.setVelocityX(60 * direction);
-                    if (this.anims.exists("crab_run")) {
-                        mob.play("crab_run", true);
-                    }
-                }
-            } else {
-                // Estado correndo
-                const isBlocked =
-                    (direction === -1 && body.blocked.left) ||
-                    (direction === 1 && body.blocked.right);
-
-                const checkX = direction === 1 ? mob.x + 14 : mob.x - 14;
-                const checkY = mob.y + 4;
-                const nextTile = this.worldLayer.getTileAtWorldXY(
-                    checkX,
-                    checkY,
-                );
-                const isNearEdge = !nextTile && body.blocked.down;
-
-                if (isBlocked || isNearEdge) {
-                    // Bateu em algo ou chegou na borda: Entra em IDLE por 2 segundos
-                    mob.setData("state", "idle");
-                    mob.setData("idleTimer", this.time.now + 2000);
-
-                    // Inverte a direção para a próxima vez que correr
-                    direction *= -1;
-                    mob.setData("direction", direction);
-
-                    mob.setVelocityX(0);
-                    if (this.anims.exists("crab_idle")) {
-                        mob.play("crab_idle", true);
-                    }
-                } else {
-                    // Mantém a velocidade de corrida
-                    mob.setVelocityX(60 * direction);
-                }
-            }
-
-            // Atualiza o flip visual baseado na direção pretendida
-            mob.setFlipX(direction === 1);
+            // Apenas garante que os mobs renderizem corretamente por enquanto
+            mob.setDepth(1);
         });
     }
 
@@ -404,127 +428,66 @@ export abstract class BaseScene extends Scene {
             window.innerWidth / this.map.widthInPixels,
             window.innerHeight / this.map.heightInPixels,
         );
-        this.cameras.main.setZoom(zoom);
+        // this.cameras.main.setZoom(zoom);
     }
 
+    // --- NOVA MOVIMENTAÇÃO TOP-DOWN ---
     protected handleMovement() {
         const speed = 160;
-        const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
-        const isGrounded = playerBody.blocked.down;
-        if (isGrounded) this.canDoubleJump = true;
-        const isMovingLeft =
-            this.keys.a.isDown ||
-            this.cursors.left.isDown ||
-            this.mobileControlsRef.current.left;
-        const isMovingRight =
-            this.keys.d.isDown ||
-            this.cursors.right.isDown ||
-            this.mobileControlsRef.current.right;
-        if (isMovingLeft) {
+        // Importante: No Top-Down, zeramos a velocidade a cada frame para evitar deslizar
+        this.player.setVelocity(0);
+
+        const keys = this.keys;
+        const cursors = this.cursors;
+        const mobile = this.mobileControlsRef.current;
+
+        // Movimento Vertical (Cima/Baixo)
+        // Adicionamos 'keys.w' e 'cursors.up' para mover em Y
+        if (keys.w.isDown || cursors.up.isDown || mobile.jump) {
+            this.player.setVelocityY(-speed);
+        } else if (keys.s.isDown || cursors.down.isDown) {
+            this.player.setVelocityY(speed);
+        }
+
+        // Movimento Horizontal (Esquerda/Direita)
+        if (keys.a.isDown || cursors.left.isDown || mobile.left) {
             this.player.setVelocityX(-speed);
             this.player.setFlipX(true);
-        } else if (isMovingRight) {
+        } else if (keys.d.isDown || cursors.right.isDown || mobile.right) {
             this.player.setVelocityX(speed);
             this.player.setFlipX(false);
-        } else {
-            this.player.setVelocityX(0);
         }
-        const jumpJustPressed =
-            Phaser.Input.Keyboard.JustDown(this.cursors.up) ||
-            Phaser.Input.Keyboard.JustDown(this.keys.w) ||
-            Phaser.Input.Keyboard.JustDown(this.keys.space) ||
-            Phaser.Input.Keyboard.JustDown(this.keys.enter) ||
-            this.mobileControlsRef.current.jump;
-        if (jumpJustPressed) {
-            this.performJump();
-            if (this.mobileControlsRef.current.jump)
-                this.mobileControlsRef.current.jump = false;
-        }
+
+        // Opcional: Normalizar para não andar mais rápido na diagonal
+        // if (this.player.body.velocity.x !== 0 && this.player.body.velocity.y !== 0) {
+        //    this.player.body.velocity.normalize().scale(speed);
+        // }
     }
 
     private performJump() {
-        const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
-        if (playerBody.blocked.down) {
-            this.player.setVelocityY(-260);
-            this.sounds.jump.play();
-            this.explodeDust(8);
-        } else if (playerBody.blocked.left || playerBody.blocked.right) {
-            const dir = playerBody.blocked.left ? 1 : -1;
-            this.player.setVelocityX(240 * dir);
-            this.player.setVelocityY(-260);
-            this.player.setFlipX(dir === -1);
-            this.sounds.jump.play();
-            this.canDoubleJump = true;
-        } else if (this.canDoubleJump) {
-            this.player.setVelocityY(-230);
-            this.canDoubleJump = false;
-            // this.player.play("double_jump", true);
-            this.sounds.jump.play({ detune: 200 });
-            this.explodeDust(6);
-        }
+        // Removido/Desativado para Top-Down
     }
 
+    // --- NOVA ANIMAÇÃO TOP-DOWN ---
     protected handleAnimations() {
         const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
-        const isGrounded = playerBody.blocked.down;
-        const isFalling = playerBody.velocity.y > 0;
-        const isTouchingWall =
-            (playerBody.blocked.left || playerBody.blocked.right) &&
-            !isGrounded;
-        let isWallSliding = false;
-        if (isTouchingWall && isFalling) {
-            this.player.setVelocityY(50);
-            isWallSliding = true;
-            this.wallSlideTimer++;
-            if (this.wallSlideTimer >= 15) {
-                this.sounds.slide.play({
-                    volume: 0.2,
-                    detune: Phaser.Math.Between(-50, 50),
-                });
-                this.wallSlideTimer = 0;
-            }
+        
+        // Simplesmente verifica se tem velocidade em qualquer eixo
+        const isMoving = playerBody.velocity.x !== 0 || playerBody.velocity.y !== 0;
+
+        if (isMoving) {
+            this.player.anims.play("run", true);
         } else {
-            this.wallSlideTimer = 10;
-        }
-        const isDoubleJumping =
-            this.player.anims.currentAnim?.key === "double_jump" &&
-            this.player.anims.isPlaying;
-        if (isWallSliding) {
-            // this.player.anims.play("wall_jump", true);
-            if (playerBody.blocked.left) this.player.setFlipX(true);
-            if (playerBody.blocked.right) this.player.setFlipX(false);
-        } else if (!isGrounded) {
-            if (!isDoubleJumping) {
-                if (playerBody.velocity.y < 0)
-                    this.player.anims.play("jump", true);
-                else this.player.anims.play("fall", true);
-            }
-        } else {
-            if (playerBody.velocity.x !== 0) {
-                this.player.anims.play("run", true);
-            } else this.player.anims.play("idle", true);
+            this.player.anims.play("idle", true);
         }
     }
 
     protected handleGroundEffects() {
+        // Efeito simples de poeira ao andar
         const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
-        const isGrounded = playerBody.blocked.down;
-        if (isGrounded && this.wasInAir) {
-            this.dustEmitter.followOffset.set(-15, 12);
-            this.dustEmitter.explode(10);
-            this.dustEmitter.followOffset.set(15, 12);
-            this.dustEmitter.explode(10);
-            this.sounds.fall.play();
-        }
-        const isRunningFast = Math.abs(playerBody.velocity.x) > 10;
-        if (isGrounded && isRunningFast) {
-            const xOffset = this.player.flipX ? 8 : -8;
-            this.dustEmitter.followOffset.set(xOffset, 12);
-            this.dustTimer++;
-            if (this.dustTimer >= 6) {
-                this.dustEmitter.emitParticle(1);
-                this.dustTimer = 0;
-            }
+        const isMoving = playerBody.velocity.x !== 0 || playerBody.velocity.y !== 0;
+
+        if (isMoving) {
             this.stepTimer++;
             if (this.stepTimer >= 20) {
                 this.sounds.step.play({
@@ -534,7 +497,6 @@ export abstract class BaseScene extends Scene {
                 this.stepTimer = 0;
             }
         }
-        this.wasInAir = !isGrounded;
     }
 
     protected explodeDust(count: number) {
@@ -693,4 +655,3 @@ export abstract class BaseScene extends Scene {
         }
     }
 }
-
