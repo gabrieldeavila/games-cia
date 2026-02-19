@@ -32,11 +32,16 @@ export class Preloader extends Scene {
 
         this.load.tilemapTiledJSON("mapa_fase1", "map/level.json");
         this.load.image("terrain-tiles", "map/Tilemap_color1.png");
-        this.load.image("blue-img", "Blue.png");
+        this.load.image("blue-img", "map/Water Background color.png");
 
         this.load.spritesheet("strawberry", "Strawberry.png", {
             frameWidth: 32,
             frameHeight: 32,
+        });
+
+        this.load.spritesheet("water_foam", "map/Water Foam.png", {
+            frameWidth: 192,
+            frameHeight: 192,
         });
 
         this.load.spritesheet("finish", "End (Idle).png", {

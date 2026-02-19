@@ -37,6 +37,10 @@ export abstract class BaseScene extends Scene {
     // Controle de Limites da Ilha
     private lastValidPosition: Phaser.Math.Vector2 = new Phaser.Math.Vector2(0, 0);
 
+    // Controle da Animação da Água e Espuma
+    private waterTime: number = 0;
+    protected foamGroup: Phaser.GameObjects.Group;
+
     // Efeitos, Itens e Mobs
     protected dustEmitter: Phaser.GameObjects.Particles.ParticleEmitter;
     protected collectiblesGroup: Phaser.Physics.Arcade.Group;
@@ -57,28 +61,24 @@ export abstract class BaseScene extends Scene {
     abstract getLevelConfig(): LevelConfig;
 
     create() {
-        // 1. Criar o mapa usando a chave definida no Preloader ('mapa_fase1')
         const map = this.make.tilemap({ key: "mapa_fase1" });
-
-        // --- DEBUG RÁPIDO PARA DESCOBRIR OS NOMES ---
-        console.log("NOME DO TILESET:", map.tilesets[0].name);
-        console.log(
-            "NOMES DAS LAYERS:",
-            map.layers.map((l) => l.name),
-        );
 
         const config = this.getLevelConfig();
         this.mobileControlsRef = this.registry.get("controlsRef");
 
-        // CORREÇÃO: Arredondar pixels evita tremor visual da câmera seguindo o player
         this.cameras.main.roundPixels = true;
 
         this.createGlobalAnimations();
         this.setupMap(config);
+        
+        // --- NOVO: GERAR ESPUMA AUTOMATICAMENTE ---
+        this.createFoamAnimation();
+        this.generateFoamBorder();
+        // ------------------------------------------
+
         this.setupControls();
         this.setupPlayerAndFinish();
 
-        // Setup de grupos antes da física
         this.mobsGroup = this.physics.add.group({
             collideWorldBounds: true,
             bounceX: 0,
@@ -97,10 +97,8 @@ export abstract class BaseScene extends Scene {
         this.setupParticles();
         this.setupCamera();
 
-        // GARANTIR gravidade zero no início (Top-Down)
         this.physics.world.gravity.y = 0;
         
-        // Inicializa a última posição válida com a posição de spawn
         if (this.player) {
             this.lastValidPosition.set(this.player.x, this.player.y);
         }
@@ -146,7 +144,6 @@ export abstract class BaseScene extends Scene {
         this.worldLayer.setCollisionByProperty({ collides: true });
         this.worldLayer.setDepth(0);
         
-        // Configura gravidade zero especificamente para este mundo
         this.physics.world.gravity.y = 0;
         
         this.worldLayer.forEachTile((tile) => {
@@ -156,18 +153,129 @@ export abstract class BaseScene extends Scene {
         });
     }
 
+    // --- LÓGICA DA ESPUMA ---
+
+    private createFoamAnimation() {
+        // Verifica se a textura foi carregada
+        if (!this.textures.exists("water_foam")) {
+            console.warn("Aviso: Textura 'water_foam' não encontrada! Verifique se descomentou no Preloader.");
+            return;
+        }
+
+        // Remove animação anterior se existir para recriar corretamente
+        if (this.anims.exists("foam_anim")) {
+            this.anims.remove("foam_anim");
+        }
+
+        // Debug para ver se a imagem carregou com tamanho certo
+        const texture = this.textures.get("water_foam");
+        const source = texture.getSourceImage();
+        console.log(`[Foam Debug] Textura carregada. Tamanho Real: ${source.width}x${source.height}`);
+        console.log(`[Foam Debug] Frames detectados pelo Phaser: ${texture.frameTotal}`);
+
+        // Cria a animação usando TODOS os frames disponíveis automaticamente
+        // Isso evita erro de tentar tocar frame 7 se só existem 3 frames
+        this.anims.create({
+            key: "foam_anim",
+            frames: this.anims.generateFrameNumbers("water_foam", {}), 
+            frameRate: 8,
+            repeat: -1
+        });
+    }
+
+    private generateFoamBorder() {
+        if (!this.worldLayer) return;
+
+        this.foamGroup = this.add.group();
+        let foamCount = 0;
+        const tileWidth = this.map.tileWidth;
+        const tileHeight = this.map.tileHeight;
+
+        this.worldLayer.forEachTile((tile) => {
+            // Verifica se o tile atual é ÁGUA (vazio / index -1)
+            if (tile.index === -1) {
+                
+                // Checa vizinhos para ver se tem terra por perto
+                const up = this.worldLayer.getTileAt(tile.x, tile.y - 1);
+                const down = this.worldLayer.getTileAt(tile.x, tile.y + 1);
+                const left = this.worldLayer.getTileAt(tile.x - 1, tile.y);
+                const right = this.worldLayer.getTileAt(tile.x + 1, tile.y);
+
+                const hasLandUp = up && up.index !== -1;
+                const hasLandDown = down && down.index !== -1;
+                const hasLandLeft = left && left.index !== -1;
+                const hasLandRight = right && right.index !== -1;
+
+                if (hasLandUp || hasLandDown || hasLandLeft || hasLandRight) {
+                    const posX = (tile.x * tileWidth) + (tileWidth / 2);
+                    const posY = (tile.y * tileHeight) + (tileHeight / 2);
+
+                    const foam = this.add.sprite(posX, posY, "water_foam");
+                    
+                    // --- AJUSTE DE ESCALA (CORRIGIDO) ---
+                    // Aumentamos o multiplicador para 3.0x o tamanho do tile.
+                    // Se o tile é 32px, a espuma ficará com ~96px visuais.
+                    // Como a imagem original é 192px e provavelmente tem transparência em volta,
+                    // isso garante que a parte visível da espuma se conecte sem buracos.
+                    const targetSize = tileWidth * 3.0; 
+                    
+                    // Calculamos a escala necessária para atingir o targetSize
+                    const scale = targetSize / foam.width;
+                    foam.setScale(scale);
+
+                    // --- AJUSTE DE POSIÇÃO E ROTAÇÃO ---
+                    // Empurra a espuma para DENTRO do tile de terra (overlap).
+                    // Como vamos colocar depth -1, a parte que sobrepõe a terra ficará escondida.
+                    // Aumentado de 0.4 para 0.7 para ficar "mais pra dentro"
+                    const overlap = tileWidth * 1.05; 
+
+                    if (hasLandRight) {
+                        foam.setAngle(90);
+                        foam.x += overlap;
+                    }
+                    else if (hasLandDown) {
+                        foam.setAngle(180);
+                        foam.y += overlap;
+                    }
+                    else if (hasLandLeft) {
+                        foam.setAngle(-90);
+                        foam.x -= overlap;
+                    } 
+                    else if (hasLandUp) {
+                        // Padrão (ângulo 0)
+                        foam.y -= overlap;
+                    }
+
+                    // Define profundidade -1 para ficar ABAIXO da camada worldLayer (que é 0)
+                    foam.setDepth(-1); 
+                    
+                    if (this.anims.exists("foam_anim")) {
+                        foam.play("foam_anim");
+                        foam.anims.setProgress(Math.random());
+                    } else {
+                        console.warn("Animação foam_anim falhou, mostrando estático");
+                    }
+                    
+                    this.foamGroup.add(foam);
+                    foamCount++;
+                }
+            }
+        });
+
+        console.log(`[Foam Debug] Espumas geradas na borda: ${foamCount}`);
+    }
+
+    // -------------------------
+
     protected setupPhysics() {
         if (this.player && this.worldLayer) {
             this.physics.add.collider(this.player, this.worldLayer);
         }
-
         if (this.finishPoint && this.worldLayer) {
             this.physics.add.collider(this.finishPoint, this.worldLayer);
         }
-
         if (this.mobsGroup && this.worldLayer) {
             this.physics.add.collider(this.mobsGroup, this.worldLayer);
-
             this.physics.add.overlap(this.player, this.mobsGroup, () => {
                 this.onPlayerDeath();
             });
@@ -176,7 +284,6 @@ export abstract class BaseScene extends Scene {
 
     private setupPlayerAndFinish() {
         const playerLayer = this.map.getObjectLayer("player");
-        // Tenta achar Spawn Point, senão usa coordenadas padrão
         const spawnPoint = playerLayer?.objects.find(
             (obj) => obj.name === "PlayerSpawn",
         );
@@ -190,10 +297,8 @@ export abstract class BaseScene extends Scene {
             "player_idle",
         );
 
-        // --- AJUSTE DE HITBOX (CORPO FÍSICO) ---
-        // Ajustamos para ficar bem focado na parte inferior do sprite
         this.player.body?.setSize(20, 24); 
-        this.player.body?.setOffset(6, 21); // Desce a hitbox para cobrir só as pernas/pés
+        this.player.body?.setOffset(6, 21);
         
         this.player.setCollideWorldBounds(true);
         this.player.setDepth(2);
@@ -249,7 +354,6 @@ export abstract class BaseScene extends Scene {
                 const offsetX = (mob.width - bodyWidth) / 2;
                 const offsetY = mob.height - bodyHeight - 8;
                 body.setOffset(offsetX, offsetY);
-                // Mobs também não devem cair no Top-Down, a menos que seja intencional
                 body.setGravityY(0); 
             }
 
@@ -270,12 +374,8 @@ export abstract class BaseScene extends Scene {
         this.handleAnimations();
         this.handleGroundEffects();
         this.handleMobsAI();
-        this.checkMapBounds(); // Adicionada verificação de limites da ilha
-
-        if (this.skyBackground) {
-            this.skyBackground.tilePositionX = this.cameras.main.scrollX * 0.1;
-            this.skyBackground.tilePositionY = this.cameras.main.scrollY * 0.1;
-        }
+        this.checkMapBounds();
+        this.handleWaterAnimation(); 
 
         if (this.finishPoint && this.finishPoint.body) {
             const finishBody = this.finishPoint
@@ -287,61 +387,52 @@ export abstract class BaseScene extends Scene {
         }
     }
 
-    /**
-     * Garante que o jogador fique apenas nos tiles desenhados (grama)
-     * e não ande no "vazio" (fundo azul).
-     */
+    private handleWaterAnimation() {
+        if (this.skyBackground) {
+            this.waterTime += 0.02;
+            const cameraX = this.cameras.main.scrollX * 0.1;
+            const cameraY = this.cameras.main.scrollY * 0.1;
+            const flowX = this.waterTime * 10;
+            const flowY = this.waterTime * 5;
+            const waveX = Math.sin(this.waterTime) * 5;
+
+            this.skyBackground.tilePositionX = cameraX + flowX + waveX;
+            this.skyBackground.tilePositionY = cameraY + flowY;
+        }
+    }
+
     private checkMapBounds() {
         if (!this.player || !this.worldLayer || !this.player.body) return;
 
-        // Por padrão, verifica o centro
         let checkX = this.player.body.center.x;
 
-        // AJUSTE LATERAL:
-        // Verifica a borda para onde o jogador está indo.
-        // REMOVIDO os offsets (+4/-4) para garantir que a hitbox não saia nem 1 pixel.
         if (this.player.body.velocity.x < 0) {
-            // Indo para a ESQUERDA: Verifica o limite esquerdo exato da hitbox
             checkX = this.player.body.x - 10;
         } else if (this.player.body.velocity.x > 0) {
-            // Indo para a DIREITA: Verifica o limite direito exato da hitbox
             checkX = this.player.body.right + 10;
         }
         
-        // CONFIGURAÇÃO DO LIMITE VERTICAL (Topo/Baixo)
         let checkY = this.player.body.bottom - 2;
 
-        // DETECÇÃO DE TOPO
-        // Se estiver subindo, verifica o centro vertical (cintura) para dar profundidade
         if (this.player.body.velocity.y < 0) {
             checkY = this.player.body.center.y - 10; 
         } else if (this.player.body.velocity.y > 0) {
-            // Descendo, verifica a borda inferior da hitbox
             checkY = this.player.body.bottom + 10;
         }
 
-        // Verifica se tem tile na camada 'world' nesta coordenada
-        // O terceiro parametro 'true' filtra tiles vazios (index -1)
         const tile = this.worldLayer.getTileAtWorldXY(checkX, checkY, true);
 
-        // ATENÇÃO: Se você pintou "água" na camada 'world', o tile vai existir e o boneco vai andar.
-        // A camada 'world' deve ter APENAS a grama/chão.
         if (tile && tile.index !== -1) {
-            // Se tem tile (grama), atualiza a última posição válida
             this.lastValidPosition.set(this.player.x, this.player.y);
         } else {
-            // Se não tem tile (é buraco/água), TELEPORTA de volta e PARA O MOVIMENTO
             this.player.setPosition(this.lastValidPosition.x, this.lastValidPosition.y);
             this.player.setVelocity(0, 0); 
         }
     }
 
     protected handleMobsAI() {
-        // Simplificado para evitar erros no Top-Down
-        // Se precisar de IA complexa, precisaria adaptar para andar em Y também
         this.mobsGroup.children.entries.forEach((m) => {
             const mob = m as Phaser.Physics.Arcade.Sprite;
-            // Apenas garante que os mobs renderizem corretamente por enquanto
             mob.setDepth(1);
         });
     }
@@ -428,28 +519,23 @@ export abstract class BaseScene extends Scene {
             window.innerWidth / this.map.widthInPixels,
             window.innerHeight / this.map.heightInPixels,
         );
-        // this.cameras.main.setZoom(zoom);
+        this.cameras.main.setZoom(zoom);
     }
 
-    // --- NOVA MOVIMENTAÇÃO TOP-DOWN ---
     protected handleMovement() {
         const speed = 160;
-        // Importante: No Top-Down, zeramos a velocidade a cada frame para evitar deslizar
         this.player.setVelocity(0);
 
         const keys = this.keys;
         const cursors = this.cursors;
         const mobile = this.mobileControlsRef.current;
 
-        // Movimento Vertical (Cima/Baixo)
-        // Adicionamos 'keys.w' e 'cursors.up' para mover em Y
         if (keys.w.isDown || cursors.up.isDown || mobile.jump) {
             this.player.setVelocityY(-speed);
         } else if (keys.s.isDown || cursors.down.isDown) {
             this.player.setVelocityY(speed);
         }
 
-        // Movimento Horizontal (Esquerda/Direita)
         if (keys.a.isDown || cursors.left.isDown || mobile.left) {
             this.player.setVelocityX(-speed);
             this.player.setFlipX(true);
@@ -457,22 +543,12 @@ export abstract class BaseScene extends Scene {
             this.player.setVelocityX(speed);
             this.player.setFlipX(false);
         }
-
-        // Opcional: Normalizar para não andar mais rápido na diagonal
-        // if (this.player.body.velocity.x !== 0 && this.player.body.velocity.y !== 0) {
-        //    this.player.body.velocity.normalize().scale(speed);
-        // }
     }
 
-    private performJump() {
-        // Removido/Desativado para Top-Down
-    }
+    private performJump() {}
 
-    // --- NOVA ANIMAÇÃO TOP-DOWN ---
     protected handleAnimations() {
         const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
-        
-        // Simplesmente verifica se tem velocidade em qualquer eixo
         const isMoving = playerBody.velocity.x !== 0 || playerBody.velocity.y !== 0;
 
         if (isMoving) {
@@ -483,7 +559,6 @@ export abstract class BaseScene extends Scene {
     }
 
     protected handleGroundEffects() {
-        // Efeito simples de poeira ao andar
         const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
         const isMoving = playerBody.velocity.x !== 0 || playerBody.velocity.y !== 0;
 
@@ -507,7 +582,6 @@ export abstract class BaseScene extends Scene {
     private createGlobalAnimations() {
         if (this.anims.exists("idle")) return;
 
-        // Animação Idle (Individual PNGs)
         const crabIdleFrames = [];
         for (let i = 1; i <= 9; i++) {
             const key = `crab_idle_${i}`;
@@ -521,7 +595,6 @@ export abstract class BaseScene extends Scene {
                 repeat: -1,
             });
 
-        // Animação Run (Individual PNGs) - ADICIONADO AGORA
         const crabRunFrames = [];
         for (let i = 1; i <= 6; i++) {
             const key = `crab_run_${i}`;
