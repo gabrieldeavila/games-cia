@@ -156,25 +156,18 @@ export abstract class BaseScene extends Scene {
     // --- LÓGICA DA ESPUMA ---
 
     private createFoamAnimation() {
-        // Verifica se a textura foi carregada
         if (!this.textures.exists("water_foam")) {
             console.warn("Aviso: Textura 'water_foam' não encontrada! Verifique se descomentou no Preloader.");
             return;
         }
 
-        // Remove animação anterior se existir para recriar corretamente
         if (this.anims.exists("foam_anim")) {
             this.anims.remove("foam_anim");
         }
 
-        // Debug para ver se a imagem carregou com tamanho certo
         const texture = this.textures.get("water_foam");
         const source = texture.getSourceImage();
-        console.log(`[Foam Debug] Textura carregada. Tamanho Real: ${source.width}x${source.height}`);
-        console.log(`[Foam Debug] Frames detectados pelo Phaser: ${texture.frameTotal}`);
 
-        // Cria a animação usando TODOS os frames disponíveis automaticamente
-        // Isso evita erro de tentar tocar frame 7 se só existem 3 frames
         this.anims.create({
             key: "foam_anim",
             frames: this.anims.generateFrameNumbers("water_foam", {}), 
@@ -192,10 +185,7 @@ export abstract class BaseScene extends Scene {
         const tileHeight = this.map.tileHeight;
 
         this.worldLayer.forEachTile((tile) => {
-            // Verifica se o tile atual é ÁGUA (vazio / index -1)
             if (tile.index === -1) {
-                
-                // Checa vizinhos para ver se tem terra por perto
                 const up = this.worldLayer.getTileAt(tile.x, tile.y - 1);
                 const down = this.worldLayer.getTileAt(tile.x, tile.y + 1);
                 const left = this.worldLayer.getTileAt(tile.x - 1, tile.y);
@@ -212,21 +202,10 @@ export abstract class BaseScene extends Scene {
 
                     const foam = this.add.sprite(posX, posY, "water_foam");
                     
-                    // --- AJUSTE DE ESCALA (CORRIGIDO) ---
-                    // Aumentamos o multiplicador para 3.0x o tamanho do tile.
-                    // Se o tile é 32px, a espuma ficará com ~96px visuais.
-                    // Como a imagem original é 192px e provavelmente tem transparência em volta,
-                    // isso garante que a parte visível da espuma se conecte sem buracos.
                     const targetSize = tileWidth * 3.0; 
-                    
-                    // Calculamos a escala necessária para atingir o targetSize
                     const scale = targetSize / foam.width;
                     foam.setScale(scale);
 
-                    // --- AJUSTE DE POSIÇÃO E ROTAÇÃO ---
-                    // Empurra a espuma para DENTRO do tile de terra (overlap).
-                    // Como vamos colocar depth -1, a parte que sobrepõe a terra ficará escondida.
-                    // Aumentado de 0.4 para 0.7 para ficar "mais pra dentro"
                     const overlap = tileWidth * 1.05; 
 
                     if (hasLandRight) {
@@ -242,18 +221,14 @@ export abstract class BaseScene extends Scene {
                         foam.x -= overlap;
                     } 
                     else if (hasLandUp) {
-                        // Padrão (ângulo 0)
                         foam.y -= overlap;
                     }
 
-                    // Define profundidade -1 para ficar ABAIXO da camada worldLayer (que é 0)
                     foam.setDepth(-1); 
                     
                     if (this.anims.exists("foam_anim")) {
                         foam.play("foam_anim");
                         foam.anims.setProgress(Math.random());
-                    } else {
-                        console.warn("Animação foam_anim falhou, mostrando estático");
                     }
                     
                     this.foamGroup.add(foam);
@@ -261,8 +236,6 @@ export abstract class BaseScene extends Scene {
                 }
             }
         });
-
-        console.log(`[Foam Debug] Espumas geradas na borda: ${foamCount}`);
     }
 
     // -------------------------
@@ -508,18 +481,24 @@ export abstract class BaseScene extends Scene {
     }
 
     private setupCamera() {
+        // Câmera segue o jogador suavemente
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
+        
+        // Limita a câmera para não sair dos limites do mapa
         this.cameras.main.setBounds(
             0,
             0,
             this.map.widthInPixels,
             this.map.heightInPixels,
         );
-        const zoom = Math.max(
-            window.innerWidth / this.map.widthInPixels,
-            window.innerHeight / this.map.heightInPixels,
-        );
-        this.cameras.main.setZoom(zoom);
+        
+        // ---- AQUI ESTAVA O PROBLEMA ----
+        // O código anterior calculava o zoom com base no tamanho da tela VS tamanho do mapa,
+        // o que forçava a câmera a se afastar muito para caber tudo.
+        
+        // Agora definimos um valor fixo. Mude este número para ajustar (2, 3, 4, etc.)
+        // Quanto maior o número, mais perto a câmera vai ficar do personagem!
+        this.cameras.main.setZoom(2);
     }
 
     protected handleMovement() {
