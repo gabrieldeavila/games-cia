@@ -33,9 +33,12 @@ export abstract class BaseScene extends Scene {
     protected stepTimer: number = 0;
     protected wallSlideTimer: number = 0;
     protected dustTimer: number = 0;
-    
+
     // Controle de Limites da Ilha
-    private lastValidPosition: Phaser.Math.Vector2 = new Phaser.Math.Vector2(0, 0);
+    private lastValidPosition: Phaser.Math.Vector2 = new Phaser.Math.Vector2(
+        0,
+        0,
+    );
 
     // Controle da Animação da Água e Espuma
     private waterTime: number = 0;
@@ -44,6 +47,7 @@ export abstract class BaseScene extends Scene {
     // Efeitos, Itens e Mobs
     protected dustEmitter: Phaser.GameObjects.Particles.ParticleEmitter;
     protected collectiblesGroup: Phaser.Physics.Arcade.Group;
+    protected decorationsGroup: Phaser.Physics.Arcade.Group;
     protected mobsGroup: Phaser.Physics.Arcade.Group;
     protected finishPoint: Phaser.Physics.Arcade.Sprite;
 
@@ -70,7 +74,7 @@ export abstract class BaseScene extends Scene {
 
         this.createGlobalAnimations();
         this.setupMap(config);
-        
+
         // --- NOVO: GERAR ESPUMA AUTOMATICAMENTE ---
         this.createFoamAnimation();
         this.generateFoamBorder();
@@ -89,8 +93,13 @@ export abstract class BaseScene extends Scene {
             allowGravity: false,
         });
 
+        this.decorationsGroup = this.physics.add.group({
+            allowGravity: false,
+        });
+
         this.createMobs(this.map);
         this.createCollectibles(this.map);
+        this.createDecorations(this.map);
 
         this.setupPhysics();
         this.setupAudio(config);
@@ -98,7 +107,7 @@ export abstract class BaseScene extends Scene {
         this.setupCamera();
 
         this.physics.world.gravity.y = 0;
-        
+
         if (this.player) {
             this.lastValidPosition.set(this.player.x, this.player.y);
         }
@@ -143,9 +152,9 @@ export abstract class BaseScene extends Scene {
         this.worldLayer = this.map.createLayer("world", tileset!, 0, 0)!;
         this.worldLayer.setCollisionByProperty({ collides: true });
         this.worldLayer.setDepth(0);
-        
+
         this.physics.world.gravity.y = 0;
-        
+
         this.worldLayer.forEachTile((tile) => {
             if (tile.properties.through) {
                 tile.setCollision(false, false, true, false);
@@ -157,7 +166,9 @@ export abstract class BaseScene extends Scene {
 
     private createFoamAnimation() {
         if (!this.textures.exists("water_foam")) {
-            console.warn("Aviso: Textura 'water_foam' não encontrada! Verifique se descomentou no Preloader.");
+            console.warn(
+                "Aviso: Textura 'water_foam' não encontrada! Verifique se descomentou no Preloader.",
+            );
             return;
         }
 
@@ -170,9 +181,9 @@ export abstract class BaseScene extends Scene {
 
         this.anims.create({
             key: "foam_anim",
-            frames: this.anims.generateFrameNumbers("water_foam", {}), 
+            frames: this.anims.generateFrameNumbers("water_foam", {}),
             frameRate: 8,
-            repeat: -1
+            repeat: -1,
         });
     }
 
@@ -197,40 +208,37 @@ export abstract class BaseScene extends Scene {
                 const hasLandRight = right && right.index !== -1;
 
                 if (hasLandUp || hasLandDown || hasLandLeft || hasLandRight) {
-                    const posX = (tile.x * tileWidth) + (tileWidth / 2);
-                    const posY = (tile.y * tileHeight) + (tileHeight / 2);
+                    const posX = tile.x * tileWidth + tileWidth / 2;
+                    const posY = tile.y * tileHeight + tileHeight / 2;
 
                     const foam = this.add.sprite(posX, posY, "water_foam");
-                    
-                    const targetSize = tileWidth * 3.0; 
+
+                    const targetSize = tileWidth * 3.0;
                     const scale = targetSize / foam.width;
                     foam.setScale(scale);
 
-                    const overlap = tileWidth * 1.05; 
+                    const overlap = tileWidth * 1.05;
 
                     if (hasLandRight) {
                         foam.setAngle(90);
                         foam.x += overlap;
-                    }
-                    else if (hasLandDown) {
+                    } else if (hasLandDown) {
                         foam.setAngle(180);
                         foam.y += overlap;
-                    }
-                    else if (hasLandLeft) {
+                    } else if (hasLandLeft) {
                         foam.setAngle(-90);
                         foam.x -= overlap;
-                    } 
-                    else if (hasLandUp) {
+                    } else if (hasLandUp) {
                         foam.y -= overlap;
                     }
 
-                    foam.setDepth(-1); 
-                    
+                    foam.setDepth(-1);
+
                     if (this.anims.exists("foam_anim")) {
                         foam.play("foam_anim");
                         foam.anims.setProgress(Math.random());
                     }
-                    
+
                     this.foamGroup.add(foam);
                     foamCount++;
                 }
@@ -270,9 +278,9 @@ export abstract class BaseScene extends Scene {
             "player_idle",
         );
 
-        this.player.body?.setSize(20, 24); 
+        this.player.body?.setSize(20, 24);
         this.player.body?.setOffset(6, 21);
-        
+
         this.player.setCollideWorldBounds(true);
         this.player.setDepth(2);
 
@@ -327,7 +335,7 @@ export abstract class BaseScene extends Scene {
                 const offsetX = (mob.width - bodyWidth) / 2;
                 const offsetY = mob.height - bodyHeight - 8;
                 body.setOffset(offsetX, offsetY);
-                body.setGravityY(0); 
+                body.setGravityY(0);
             }
 
             mob.setData("state", "run");
@@ -348,7 +356,7 @@ export abstract class BaseScene extends Scene {
         this.handleGroundEffects();
         this.handleMobsAI();
         this.checkMapBounds();
-        this.handleWaterAnimation(); 
+        this.handleWaterAnimation();
 
         if (this.finishPoint && this.finishPoint.body) {
             const finishBody = this.finishPoint
@@ -384,11 +392,11 @@ export abstract class BaseScene extends Scene {
         } else if (this.player.body.velocity.x > 0) {
             checkX = this.player.body.right + 10;
         }
-        
+
         let checkY = this.player.body.bottom - 2;
 
         if (this.player.body.velocity.y < 0) {
-            checkY = this.player.body.center.y - 10; 
+            checkY = this.player.body.center.y - 10;
         } else if (this.player.body.velocity.y > 0) {
             checkY = this.player.body.bottom + 10;
         }
@@ -398,8 +406,11 @@ export abstract class BaseScene extends Scene {
         if (tile && tile.index !== -1) {
             this.lastValidPosition.set(this.player.x, this.player.y);
         } else {
-            this.player.setPosition(this.lastValidPosition.x, this.lastValidPosition.y);
-            this.player.setVelocity(0, 0); 
+            this.player.setPosition(
+                this.lastValidPosition.x,
+                this.lastValidPosition.y,
+            );
+            this.player.setVelocity(0, 0);
         }
     }
 
@@ -483,7 +494,7 @@ export abstract class BaseScene extends Scene {
     private setupCamera() {
         // Câmera segue o jogador suavemente
         this.cameras.main.startFollow(this.player, true, 0.08, 0.08);
-        
+
         // Limita a câmera para não sair dos limites do mapa
         this.cameras.main.setBounds(
             0,
@@ -491,14 +502,14 @@ export abstract class BaseScene extends Scene {
             this.map.widthInPixels,
             this.map.heightInPixels,
         );
-        
+
         // ---- AQUI ESTAVA O PROBLEMA ----
         // O código anterior calculava o zoom com base no tamanho da tela VS tamanho do mapa,
         // o que forçava a câmera a se afastar muito para caber tudo.
-        
+
         // Agora definimos um valor fixo. Mude este número para ajustar (2, 3, 4, etc.)
         // Quanto maior o número, mais perto a câmera vai ficar do personagem!
-        this.cameras.main.setZoom(2);
+        // this.cameras.main.setZoom(2);
     }
 
     protected handleMovement() {
@@ -528,7 +539,8 @@ export abstract class BaseScene extends Scene {
 
     protected handleAnimations() {
         const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
-        const isMoving = playerBody.velocity.x !== 0 || playerBody.velocity.y !== 0;
+        const isMoving =
+            playerBody.velocity.x !== 0 || playerBody.velocity.y !== 0;
 
         if (isMoving) {
             this.player.anims.play("run", true);
@@ -539,7 +551,8 @@ export abstract class BaseScene extends Scene {
 
     protected handleGroundEffects() {
         const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
-        const isMoving = playerBody.velocity.x !== 0 || playerBody.velocity.y !== 0;
+        const isMoving =
+            playerBody.velocity.x !== 0 || playerBody.velocity.y !== 0;
 
         if (isMoving) {
             this.stepTimer++;
@@ -634,6 +647,25 @@ export abstract class BaseScene extends Scene {
             frameRate: 20,
         });
         this.anims.create({
+            key: "rock",
+            frames: [{ key: "rock", frame: 0 }],
+            frameRate: 20,
+        });
+        this.anims.create({
+            key: "rock2",
+            frames: [{ key: "rock2", frame: 0 }],
+            frameRate: 20,
+        });
+        this.anims.create({
+            key: "tree",
+            frames: this.anims.generateFrameNumbers("tree", {
+                start: 0,
+                end: 8,
+            }),
+            frameRate: 20,
+            repeat: -1,
+        });
+        this.anims.create({
             key: "wall_jump",
             frames: [{ key: "player_wall_jump", frame: 0 }],
             frameRate: 20,
@@ -663,6 +695,7 @@ export abstract class BaseScene extends Scene {
             "collectibles",
             (obj) => obj.name !== "Strawberry",
         );
+
         fruitPoints?.forEach((point) => {
             const f = this.collectiblesGroup.create(
                 point.x,
@@ -673,8 +706,11 @@ export abstract class BaseScene extends Scene {
             f.body?.setSize(14, 14);
             f.body?.setOffset(9, 9);
         });
-        if (this.collectiblesGroup.countActive(true) === 0)
+
+        if (this.collectiblesGroup.countActive(true) === 0) {
             this.activateFinish();
+        }
+
         this.physics.add.overlap(
             this.player,
             this.collectiblesGroup,
@@ -692,6 +728,87 @@ export abstract class BaseScene extends Scene {
         );
     }
 
+    private DECORATIONS: {
+        [key: string]: {
+            size: {
+                width: number;
+                height: number;
+            };
+            offset?: {
+                x: number;
+                y: number;
+            };
+        };
+    } = {
+        tree: {
+            size: {
+                width: 90,
+                height: 190,
+            },
+            offset: {
+                x: 50,
+                y: 50,
+            },
+        },
+        rock: {
+            size: {
+                width: 30,
+                height: 20,
+            },
+            offset: {
+                x: 15,
+                y: 25,
+            },
+        },
+        rock2: {
+            size: {
+                width: 30,
+                height: 20,
+            },
+        },
+    };
+
+    private createDecorations(map: Phaser.Tilemaps.Tilemap) {
+        const rockPoints = map.filterObjects("decorations", () => true);
+
+        console.log(rockPoints);
+
+        rockPoints?.forEach((point) => {
+            const type = String(point.name as keyof typeof this.DECORATIONS);
+
+            if (!this.anims.exists(type)) {
+                console.warn(
+                    `Aviso: Animação '${type}' não encontrada! Verifique se descomentou no Preloader.`,
+                );
+                return;
+            }
+
+            const r = this.decorationsGroup.create(
+                point.x,
+                point.y,
+                type,
+            ) as Phaser.Physics.Arcade.Sprite;
+            r.play(type);
+
+            const decorConfig = this.DECORATIONS[type];
+
+            if (r.body) {
+                r.body.setSize(decorConfig.size.width, decorConfig.size.height);
+
+                if (decorConfig.offset) {
+                    r.body.setOffset(
+                        decorConfig.offset.x || 0,
+                        decorConfig.offset.y || 0,
+                    );
+                }
+
+                (r.body as Phaser.Physics.Arcade.Body).setImmovable(true);
+            }
+        });
+
+        this.physics.add.collider(this.player, this.decorationsGroup);
+    }
+
     private activateFinish() {
         if (this.finishPoint && this.finishPoint.body) {
             this.finishPoint.setVisible(true);
@@ -707,3 +824,4 @@ export abstract class BaseScene extends Scene {
         }
     }
 }
+

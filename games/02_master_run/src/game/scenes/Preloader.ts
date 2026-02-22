@@ -94,6 +94,21 @@ export class Preloader extends Scene {
             },
         );
 
+        this.load.spritesheet("rock", "decorations/Rock1.png", {
+            frameWidth: 64,
+            frameHeight: 64,
+        });
+
+        this.load.spritesheet("rock2", "decorations/Rock2.png", {
+            frameWidth: 64,
+            frameHeight: 64,
+        });
+
+        this.load.spritesheet("tree", "decorations/Tree1.png", {
+            frameWidth: 1536 / 8,
+            frameHeight: 256,
+        });
+
         this.load.audio("jump_sfx", "sounds/jump.wav");
         this.load.audio("pickup_sfx", "sounds/pickup.wav");
         this.load.audio("step_sfx", "sounds/step.wav");

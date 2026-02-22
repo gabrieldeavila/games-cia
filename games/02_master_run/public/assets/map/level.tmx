@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="100" height="64" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="18">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="100" height="64" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="23">
  <editorsettings>
   <export target="level.json" format="json"/>
  </editorsettings>
@@ -81,49 +81,64 @@
   </object>
  </objectgroup>
  <objectgroup id="4" name="decorations">
-  <object id="3" name="tree" x="190.032" y="190.032">
+  <object id="3" name="tree" x="190.032" y="172.104">
    <point/>
   </object>
-  <object id="4" name="tree" x="164.934" y="901.757">
+  <object id="4" name="tree" x="161.348" y="839.01">
    <point/>
   </object>
-  <object id="5" name="tree" x="1380.42" y="917.892">
+  <object id="5" name="tree" x="1416.28" y="817.498">
    <point/>
   </object>
-  <object id="6" name="tree" x="1410.9" y="186.447">
+  <object id="6" name="tree" x="1288.99" y="204.375">
    <point/>
   </object>
-  <object id="7" name="tree" x="243.815" y="609.537">
+  <object id="7" name="tree" x="406.956" y="571.889">
    <point/>
   </object>
-  <object id="8" name="tree" x="1097.17" y="283.256">
+  <object id="8" name="tree" x="573.685" y="267.121">
    <point/>
   </object>
-  <object id="9" name="tree" x="482.252" y="258.157">
+  <object id="9" name="tree" x="971.675" y="496.594">
    <point/>
   </object>
-  <object id="10" name="tree" x="1023.66" y="833.632">
+  <object id="10" name="tree" x="846.177" y="826.461">
    <point/>
   </object>
-  <object id="11" name="rock" x="401.578" y="770.886">
+  <object id="11" name="rock" x="215.131" y="926.856">
    <point/>
   </object>
   <object id="12" name="rock" x="609.537" y="448.189">
    <point/>
   </object>
-  <object id="13" name="rock" x="715.31" y="702.761">
+  <object id="13" name="rock2" x="715.31" y="702.761">
    <point/>
   </object>
   <object id="14" name="rock" x="243.815" y="301.183">
    <point/>
   </object>
-  <object id="15" name="rock" x="959.125" y="216.924">
+  <object id="15" name="rock2" x="959.125" y="216.924">
    <point/>
   </object>
   <object id="16" name="rock" x="1249.55" y="482.252">
    <point/>
   </object>
-  <object id="17" x="1086.41" y="675.869">
+  <object id="17" name="rock" x="1002.15" y="268.913">
+   <point/>
+  </object>
+  <object id="18" name="rock" x="1034.42" y="720.688">
+   <point/>
+  </object>
+  <object id="19" name="rock2" x="1224.45" y="643.6">
+   <point/>
+  </object>
+  <object id="20" name="rock" x="582.646" y="899.964">
+   <point/>
+  </object>
+  <object id="21" name="rock" x="1048.76" y="932.234">
+   <point/>
+  </object>
+  <object id="22" name="rock2" x="259.95" y="916.099">
    <point/>
   </object>
  </objectgroup>
