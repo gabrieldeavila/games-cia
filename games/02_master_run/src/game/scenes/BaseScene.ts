@@ -509,7 +509,7 @@ export abstract class BaseScene extends Scene {
 
         // Agora definimos um valor fixo. Mude este número para ajustar (2, 3, 4, etc.)
         // Quanto maior o número, mais perto a câmera vai ficar do personagem!
-        // this.cameras.main.setZoom(2);
+        this.cameras.main.setZoom(2);
     }
 
     protected handleMovement() {
@@ -666,6 +666,15 @@ export abstract class BaseScene extends Scene {
             repeat: -1,
         });
         this.anims.create({
+            key: "tree2",
+            frames: this.anims.generateFrameNumbers("tree2", {
+                start: 0,
+                end: 8,
+            }),
+            frameRate: 20,
+            repeat: -1,
+        });
+        this.anims.create({
             key: "wall_jump",
             frames: [{ key: "player_wall_jump", frame: 0 }],
             frameRate: 20,
@@ -748,6 +757,16 @@ export abstract class BaseScene extends Scene {
             offset: {
                 x: 50,
                 y: 50,
+            },
+        },
+        tree2: {
+            size: {
+                width: 90,
+                height: 140,
+            },
+            offset: {
+                x: 50,
+                y: 25,
             },
         },
         rock: {

@@ -84,7 +84,7 @@
   <object id="3" name="tree" x="190.032" y="172.104">
    <point/>
   </object>
-  <object id="4" name="tree" x="161.348" y="839.01">
+  <object id="4" name="tree2" x="161.348" y="839.01">
    <point/>
   </object>
   <object id="5" name="tree" x="1416.28" y="817.498">
@@ -93,13 +93,13 @@
   <object id="6" name="tree" x="1288.99" y="204.375">
    <point/>
   </object>
-  <object id="7" name="tree" x="406.956" y="571.889">
+  <object id="7" name="tree2" x="406.956" y="571.889">
    <point/>
   </object>
   <object id="8" name="tree" x="573.685" y="267.121">
    <point/>
   </object>
-  <object id="9" name="tree" x="971.675" y="496.594">
+  <object id="9" name="tree2" x="971.675" y="496.594">
    <point/>
   </object>
   <object id="10" name="tree" x="846.177" y="826.461">

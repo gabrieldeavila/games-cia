@@ -109,6 +109,11 @@ export class Preloader extends Scene {
             frameHeight: 256,
         });
 
+        this.load.spritesheet("tree2", "decorations/Tree3.png", {
+            frameWidth: 1536 / 8,
+            frameHeight: 192,
+        });
+
         this.load.audio("jump_sfx", "sounds/jump.wav");
         this.load.audio("pickup_sfx", "sounds/pickup.wav");
         this.load.audio("step_sfx", "sounds/step.wav");
