@@ -66,7 +66,7 @@ export class Preloader extends Scene {
         //     frameHeight: 128,
         // });
         this.load.spritesheet("player_run", "vorc/run.png", {
-            frameWidth: 204 / 6,
+            frameWidth: 226 / 6,
             frameHeight: 45,
         });
         this.load.spritesheet("player_jump", "vorc/jump.png", {
