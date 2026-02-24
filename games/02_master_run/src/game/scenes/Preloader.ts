@@ -104,6 +104,11 @@ export class Preloader extends Scene {
             frameHeight: 64,
         });
 
+        this.load.spritesheet("bank", "decorations/bank.png", {
+            frameWidth: 300,
+            frameHeight: 415,
+        });
+
         this.load.spritesheet("tree", "decorations/Tree1.png", {
             frameWidth: 1536 / 8,
             frameHeight: 256,

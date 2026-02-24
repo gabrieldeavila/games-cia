@@ -657,6 +657,11 @@ export abstract class BaseScene extends Scene {
             frameRate: 20,
         });
         this.anims.create({
+            key: "bank",
+            frames: [{ key: "bank", frame: 0 }],
+            frameRate: 20,
+        });
+        this.anims.create({
             key: "tree",
             frames: this.anims.generateFrameNumbers("tree", {
                 start: 0,
@@ -747,6 +752,7 @@ export abstract class BaseScene extends Scene {
                 x: number;
                 y: number;
             };
+            scale?: number;
         };
     } = {
         tree: {
@@ -758,6 +764,7 @@ export abstract class BaseScene extends Scene {
                 x: 50,
                 y: 50,
             },
+            scale: 0.7,
         },
         tree2: {
             size: {
@@ -778,12 +785,21 @@ export abstract class BaseScene extends Scene {
                 x: 15,
                 y: 25,
             },
+            scale: 0.8,
         },
         rock2: {
             size: {
                 width: 30,
                 height: 20,
             },
+            scale: 0.7,
+        },
+        bank: {
+            size: {
+                width: 300,
+                height: 415,
+            },
+            scale: 0.7,
         },
     };
 
@@ -810,6 +826,10 @@ export abstract class BaseScene extends Scene {
             r.play(type);
 
             const decorConfig = this.DECORATIONS[type];
+
+            if (decorConfig.scale) {
+                r.setScale(this.DECORATIONS[type].scale!);
+            }
 
             if (r.body) {
                 r.body.setSize(decorConfig.size.width, decorConfig.size.height);
