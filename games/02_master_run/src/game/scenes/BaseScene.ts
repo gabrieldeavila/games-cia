@@ -6,7 +6,7 @@ import { GameInputContextData } from "../../context/game";
  */
 export interface LevelConfig {
     mapId: string;
-    tileSetTerrain: string;
+    tileSetTerrains: { name: string; path: string }[];
     tileSetBackground: string;
     bgMusicKey: string;
     blueTileKey?: string;
@@ -65,8 +65,6 @@ export abstract class BaseScene extends Scene {
     abstract getLevelConfig(): LevelConfig;
 
     create() {
-        const map = this.make.tilemap({ key: "mapa_fase1" });
-
         const config = this.getLevelConfig();
         this.mobileControlsRef = this.registry.get("controlsRef");
 
@@ -75,10 +73,8 @@ export abstract class BaseScene extends Scene {
         this.createGlobalAnimations();
         this.setupMap(config);
 
-        // --- NOVO: GERAR ESPUMA AUTOMATICAMENTE ---
         this.createFoamAnimation();
         this.generateFoamBorder();
-        // ------------------------------------------
 
         this.setupControls();
         this.setupPlayerAndFinish();
@@ -118,10 +114,13 @@ export abstract class BaseScene extends Scene {
     private setupMap(config: LevelConfig) {
         this.map = this.make.tilemap({ key: config.mapId });
 
-        const tileset = this.map.addTilesetImage(
-            "Tilemap_color1",
-            config.tileSetTerrain,
-        );
+        const allTilesets: Phaser.Tilemaps.Tileset[] =
+            config.tileSetTerrains.map(({ name, path }) => {
+                const tileset = this.map.addTilesetImage(path, name);
+
+                return tileset!;
+            });
+
         const bgKey = config.blueTileKey || config.tileSetBackground;
         const tilesetBlue = this.map.addTilesetImage("Blue back", bgKey);
 
@@ -149,7 +148,7 @@ export abstract class BaseScene extends Scene {
             });
         }
 
-        this.worldLayer = this.map.createLayer("world", tileset!, 0, 0)!;
+        this.worldLayer = this.map.createLayer("world", allTilesets, 0, 0)!;
         this.worldLayer.setCollisionByProperty({ collides: true });
         this.worldLayer.setDepth(0);
 
@@ -503,12 +502,6 @@ export abstract class BaseScene extends Scene {
             this.map.heightInPixels,
         );
 
-        // ---- AQUI ESTAVA O PROBLEMA ----
-        // O código anterior calculava o zoom com base no tamanho da tela VS tamanho do mapa,
-        // o que forçava a câmera a se afastar muito para caber tudo.
-
-        // Agora definimos um valor fixo. Mude este número para ajustar (2, 3, 4, etc.)
-        // Quanto maior o número, mais perto a câmera vai ficar do personagem!
         this.cameras.main.setZoom(2);
     }
 
@@ -534,8 +527,6 @@ export abstract class BaseScene extends Scene {
             this.player.setFlipX(false);
         }
     }
-
-    private performJump() {}
 
     protected handleAnimations() {
         const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
@@ -587,44 +578,13 @@ export abstract class BaseScene extends Scene {
                 repeat: -1,
             });
 
-        const crabRunFrames = [];
-        for (let i = 1; i <= 6; i++) {
-            const key = `crab_run_${i}`;
-            if (this.textures.exists(key)) crabRunFrames.push({ key });
-        }
-        if (crabRunFrames.length > 0)
-            this.anims.create({
-                key: "crab_run",
-                frames: crabRunFrames,
-                frameRate: 12,
-                repeat: -1,
-            });
-
-        this.anims.create({
-            key: "strawberry_idle",
-            frames: this.anims.generateFrameNumbers("strawberry", {
-                start: 0,
-                end: 16,
-            }),
-            frameRate: 20,
-            repeat: -1,
-        });
-        this.anims.create({
-            key: "finish_idle",
-            frames: this.anims.generateFrameNumbers("finish", {
-                start: 0,
-                end: 7,
-            }),
-            frameRate: 15,
-            repeat: -1,
-        });
         this.anims.create({
             key: "idle",
             frames: this.anims.generateFrameNumbers("player_idle", {
                 start: 0,
                 end: 6,
             }),
-            frameRate: 20,
+            frameRate: 10,
             repeat: -1,
         });
         this.anims.create({
@@ -635,16 +595,6 @@ export abstract class BaseScene extends Scene {
             }),
             frameRate: 10,
             repeat: -1,
-        });
-        this.anims.create({
-            key: "jump",
-            frames: [{ key: "player_jump", frame: 0 }],
-            frameRate: 20,
-        });
-        this.anims.create({
-            key: "fall",
-            frames: [{ key: "player_fall", frame: 0 }],
-            frameRate: 20,
         });
         this.anims.create({
             key: "rock",
@@ -680,20 +630,6 @@ export abstract class BaseScene extends Scene {
             repeat: -1,
         });
         this.anims.create({
-            key: "wall_jump",
-            frames: [{ key: "player_wall_jump", frame: 0 }],
-            frameRate: 20,
-        });
-        this.anims.create({
-            key: "double_jump",
-            frames: this.anims.generateFrameNumbers("player_double_jump", {
-                start: 0,
-                end: 5,
-            }),
-            frameRate: 20,
-            repeat: 0,
-        });
-        this.anims.create({
             key: "collected",
             frames: this.anims.generateFrameNumbers("collected", {
                 start: 0,
@@ -720,11 +656,6 @@ export abstract class BaseScene extends Scene {
             f.body?.setSize(14, 14);
             f.body?.setOffset(9, 9);
         });
-
-        if (this.collectiblesGroup.countActive(true) === 0) {
-            this.activateFinish();
-        }
-
         this.physics.add.overlap(
             this.player,
             this.collectiblesGroup,
@@ -735,8 +666,6 @@ export abstract class BaseScene extends Scene {
                 fruit.play("collected");
                 fruit.on("animationcomplete", () => {
                     fruit.destroy();
-                    if (this.collectiblesGroup.countActive(true) === 0)
-                        this.activateFinish();
                 });
             },
         );
@@ -799,14 +728,12 @@ export abstract class BaseScene extends Scene {
                 width: 300,
                 height: 415,
             },
-            scale: 0.7,
+            scale: 0.3,
         },
     };
 
     private createDecorations(map: Phaser.Tilemaps.Tilemap) {
         const rockPoints = map.filterObjects("decorations", () => true);
-
-        console.log(rockPoints);
 
         rockPoints?.forEach((point) => {
             const type = String(point.name as keyof typeof this.DECORATIONS);
@@ -846,21 +773,6 @@ export abstract class BaseScene extends Scene {
         });
 
         this.physics.add.collider(this.player, this.decorationsGroup);
-    }
-
-    private activateFinish() {
-        if (this.finishPoint && this.finishPoint.body) {
-            this.finishPoint.setVisible(true);
-            this.finishPoint.body.enable = true;
-            this.finishPoint.setAlpha(0);
-            this.tweens.add({
-                targets: this.finishPoint,
-                alpha: 1,
-                duration: 500,
-                ease: "Power2",
-            });
-            this.finishPoint.play("finish_idle");
-        }
     }
 }
 

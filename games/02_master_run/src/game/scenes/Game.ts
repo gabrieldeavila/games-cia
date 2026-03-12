@@ -12,8 +12,17 @@ export class Game extends BaseScene {
      */
     getLevelConfig(): LevelConfig {
         return {
-            mapId: "mapa_fase1",
-            tileSetTerrain: "terrain-tiles",
+            mapId: "mapa_start",
+            tileSetTerrains: [
+                {
+                    name: "terrain-tiles",
+                    path: "terrain",
+                },
+                {
+                    name: "tilemap-color1",
+                    path: "Tilemap_color1",
+                },
+            ],
             tileSetBackground: "blue-img",
             bgMusicKey: "theme_music",
         };
@@ -28,3 +37,4 @@ export class Game extends BaseScene {
         // Ex: Adicionar um NPC específico
     }
 }
+

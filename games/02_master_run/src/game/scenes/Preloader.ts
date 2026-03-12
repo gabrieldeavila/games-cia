@@ -30,8 +30,9 @@ export class Preloader extends Scene {
         this.load.image("logo", "logo.png");
         this.load.image("star", "star.png");
 
-        this.load.tilemapTiledJSON("mapa_fase1", "map/level.json");
-        this.load.image("terrain-tiles", "map/Tilemap_color1.png");
+        this.load.tilemapTiledJSON("mapa_start", "map/level_agiota_start.json");
+        this.load.image("tilemap-color1", "map/Tilemap_color1.png");
+        this.load.image("terrain-tiles", "terrain.png");
         this.load.image("blue-img", "map/Water Background color.png");
 
         this.load.spritesheet("strawberry", "Strawberry.png", {
@@ -57,8 +58,8 @@ export class Preloader extends Scene {
         this.load.image("dust", "Dust Particle.png");
 
         // 4. O Spritesheet do Player (Sapinho/Mascarado)
-        this.load.spritesheet("player_idle", "vorc/idle.png", {
-            frameWidth: 297 / 9, // Ajuste para a largura real do arquivo gangsta.png
+        this.load.spritesheet("player_idle", "vorc/buy.png", {
+            frameWidth: 196 / 6, // Ajuste para a largura real do arquivo gangsta.png
             frameHeight: 45,
         });
         // this.load.spritesheet("player_idle", "vorc/idle.png", {
