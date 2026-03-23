@@ -79,6 +79,12 @@ export class Preloader extends Scene {
             frameWidth: 33,
             frameHeight: 45,
         });
+
+        this.load.spritesheet("coin", "vorc/coin.png", {
+            frameWidth: 62,
+            frameHeight: 56,
+        });
+
         this.load.spritesheet(
             "player_wall_jump",
             "ninja/Wall Jump (32x32).png",

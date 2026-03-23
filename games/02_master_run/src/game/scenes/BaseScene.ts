@@ -27,6 +27,8 @@ export abstract class BaseScene extends Scene {
     // Fundo Infinito
     protected skyBackground: Phaser.GameObjects.TileSprite;
 
+    protected isThrowingCoin: boolean = false;
+
     // Estado do Personagem
     protected wasInAir: boolean = false;
     protected canDoubleJump: boolean = false;
@@ -49,6 +51,7 @@ export abstract class BaseScene extends Scene {
     protected collectiblesGroup: Phaser.Physics.Arcade.Group;
     protected decorationsGroup: Phaser.Physics.Arcade.Group;
     protected mobsGroup: Phaser.Physics.Arcade.Group;
+    protected coinGroup: Phaser.Physics.Arcade.Group;
     protected finishPoint: Phaser.Physics.Arcade.Sprite;
 
     // Áudio
@@ -91,6 +94,13 @@ export abstract class BaseScene extends Scene {
 
         this.decorationsGroup = this.physics.add.group({
             allowGravity: false,
+        });
+
+        this.coinGroup = this.physics.add.group({
+            allowGravity: false,
+            classType: Phaser.Physics.Arcade.Sprite,
+            runChildUpdate: true,
+            defaultKey: "coin",
         });
 
         this.createMobs(this.map);
@@ -260,6 +270,25 @@ export abstract class BaseScene extends Scene {
                 this.onPlayerDeath();
             });
         }
+
+        if (this.coinGroup && this.worldLayer) {
+            this.physics.add.collider(this.coinGroup, this.worldLayer, (
+                coin,
+            ) => {
+                coin.destroy();
+            });
+        }
+
+        if (this.coinGroup && this.mobsGroup) {
+            this.physics.add.overlap(
+                this.coinGroup,
+                this.mobsGroup,
+                (coin, mob) => {
+                    (coin as Phaser.GameObjects.GameObject).destroy();
+                    (mob as Phaser.Physics.Arcade.Sprite).destroy();
+                },
+            );
+        }
     }
 
     private setupPlayerAndFinish() {
@@ -278,6 +307,15 @@ export abstract class BaseScene extends Scene {
         );
 
         this.player.body?.setSize(20, 24);
+
+        this.player.on(
+            Phaser.Animations.Events.ANIMATION_COMPLETE,
+            (animation: Phaser.Animations.Animation) => {
+                if (animation.key === "buy") {
+                    this.handleBuyAnimationComplete();
+                }
+            },
+        );
         this.player.body?.setOffset(6, 21);
 
         this.player.setCollideWorldBounds(true);
@@ -357,6 +395,25 @@ export abstract class BaseScene extends Scene {
         this.checkMapBounds();
         this.handleWaterAnimation();
 
+        if (this.coinGroup) {
+            this.coinGroup.getChildren().forEach((child) => {
+                const coin = child as Phaser.Physics.Arcade.Sprite;
+
+                if (!this.anims.exists("coin_spin")) {
+                    coin.angle += 14;
+                }
+
+                if (
+                    coin.x < 0 ||
+                    coin.x > this.map.widthInPixels ||
+                    coin.y < 0 ||
+                    coin.y > this.map.heightInPixels
+                ) {
+                    coin.destroy();
+                }
+            });
+        }
+
         if (this.finishPoint && this.finishPoint.body) {
             const finishBody = this.finishPoint
                 .body as Phaser.Physics.Arcade.Body;
@@ -420,6 +477,43 @@ export abstract class BaseScene extends Scene {
         });
     }
 
+    protected handleBuyAnimationComplete() {
+        if (!this.isThrowingCoin) return;
+
+        this.isThrowingCoin = false;
+
+        this.throwCoin();
+    }
+
+    protected throwCoin() {
+        if (!this.player || !this.coinGroup) return;
+
+        const facingLeft = this.player.flipX;
+        const speedX = 320; // reduce velocidade para ficar melhor
+        const velocityX = facingLeft ? -speedX : speedX;
+        const offsetX = facingLeft ? -24 : 24;
+        const spawnX = this.player.x + offsetX;
+        const spawnY = this.player.y;
+
+        const coin = this.coinGroup.get(spawnX, spawnY, "coin") as Phaser.Physics.Arcade.Sprite;
+        if (!coin) return;
+
+        coin.setActive(true).setVisible(true);
+        coin.setScale(0.26); // coin maior para ficar legível
+        coin.setDepth(2);
+
+        const body = coin.body as Phaser.Physics.Arcade.Body;
+        body.setAllowGravity(false);
+        body.setSize(16, 16); // caixa de colisão maior com tamanho maior
+        body.setVelocity(velocityX, 0);
+        body.setBounce(0, 0);
+        body.setCollideWorldBounds(false);
+
+        if (this.anims.exists("coin_spin")) {
+            coin.play("coin_spin", true);
+        }
+    }
+
     protected onPlayerDeath() {
         console.log("Player morreu!");
         this.sounds.fall?.play();
@@ -456,6 +550,7 @@ export abstract class BaseScene extends Scene {
             space: this.input.keyboard!.addKey(
                 Phaser.Input.Keyboard.KeyCodes.SPACE,
             ),
+            e: this.input.keyboard!.addKey(Phaser.Input.Keyboard.KeyCodes.E),
         };
     }
 
@@ -513,6 +608,11 @@ export abstract class BaseScene extends Scene {
         const cursors = this.cursors;
         const mobile = this.mobileControlsRef.current;
 
+        if (keys.e.isDown && !this.isThrowingCoin) {
+            this.isThrowingCoin = true;
+            console.log("Lançando moeda!");
+        }
+
         if (keys.w.isDown || cursors.up.isDown || mobile.jump) {
             this.player.setVelocityY(-speed);
         } else if (keys.s.isDown || cursors.down.isDown) {
@@ -532,6 +632,11 @@ export abstract class BaseScene extends Scene {
         const playerBody = this.player.body as Phaser.Physics.Arcade.Body;
         const isMoving =
             playerBody.velocity.x !== 0 || playerBody.velocity.y !== 0;
+
+        if (this.isThrowingCoin) {
+            this.player.anims.play("buy", true);
+            return;
+        }
 
         if (isMoving) {
             this.player.anims.play("run", true);
@@ -570,13 +675,15 @@ export abstract class BaseScene extends Scene {
             const key = `crab_idle_${i}`;
             if (this.textures.exists(key)) crabIdleFrames.push({ key });
         }
-        if (crabIdleFrames.length > 0)
+
+        if (crabIdleFrames.length > 0) {
             this.anims.create({
                 key: "crab_idle",
                 frames: crabIdleFrames,
                 frameRate: 10,
                 repeat: -1,
             });
+        }
 
         this.anims.create({
             key: "idle",
@@ -594,7 +701,7 @@ export abstract class BaseScene extends Scene {
                 end: 6,
             }),
             frameRate: 10,
-            repeat: -1,
+            repeat: 0,
         });
         this.anims.create({
             key: "run",
@@ -605,6 +712,25 @@ export abstract class BaseScene extends Scene {
             frameRate: 10,
             repeat: -1,
         });
+
+        if (this.textures.exists("coin")) {
+            const coinTexture = this.textures.get("coin");
+            const frameNames = coinTexture.getFrameNames();
+            const frameCount = frameNames.length;
+
+            if (frameCount > 1) {
+                this.anims.create({
+                    key: "coin_spin",
+                    frames: this.anims.generateFrameNumbers("coin", {
+                        start: 0,
+                        end: frameCount - 1,
+                    }),
+                    frameRate: 12,
+                    repeat: -1,
+                });
+            }
+        }
+
         this.anims.create({
             key: "rock",
             frames: [{ key: "rock", frame: 0 }],
