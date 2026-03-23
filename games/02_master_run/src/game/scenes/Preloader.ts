@@ -58,14 +58,15 @@ export class Preloader extends Scene {
         this.load.image("dust", "Dust Particle.png");
 
         // 4. O Spritesheet do Player (Sapinho/Mascarado)
-        this.load.spritesheet("player_idle", "vorc/buy.png", {
+        this.load.spritesheet("player_buy", "vorc/buy.png", {
             frameWidth: 196 / 6, // Ajuste para a largura real do arquivo gangsta.png
             frameHeight: 45,
         });
-        // this.load.spritesheet("player_idle", "vorc/idle.png", {
-        //     frameWidth: 50, // Ajuste para a largura real do arquivo gangsta.png
-        //     frameHeight: 128,
-        // });
+
+        this.load.spritesheet("player_idle", "vorc/idle.png", {
+            frameWidth: 297 / 9, // Ajuste para a largura real do arquivo gangsta.png
+            frameHeight: 45,
+        });
         this.load.spritesheet("player_run", "vorc/run.png", {
             frameWidth: 226 / 6,
             frameHeight: 45,

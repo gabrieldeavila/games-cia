@@ -588,6 +588,15 @@ export abstract class BaseScene extends Scene {
             repeat: -1,
         });
         this.anims.create({
+            key: "buy",
+            frames: this.anims.generateFrameNumbers("player_buy", {
+                start: 0,
+                end: 6,
+            }),
+            frameRate: 10,
+            repeat: -1,
+        });
+        this.anims.create({
             key: "run",
             frames: this.anims.generateFrameNumbers("player_run", {
                 start: 0,
