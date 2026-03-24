@@ -272,11 +272,13 @@ export abstract class BaseScene extends Scene {
         }
 
         if (this.coinGroup && this.worldLayer) {
-            this.physics.add.collider(this.coinGroup, this.worldLayer, (
-                coin,
-            ) => {
-                coin.destroy();
-            });
+            this.physics.add.collider(
+                this.coinGroup,
+                this.worldLayer,
+                (coin) => {
+                    coin.destroy();
+                },
+            );
         }
 
         if (this.coinGroup && this.mobsGroup) {
@@ -495,7 +497,11 @@ export abstract class BaseScene extends Scene {
         const spawnX = this.player.x + offsetX;
         const spawnY = this.player.y;
 
-        const coin = this.coinGroup.get(spawnX, spawnY, "coin") as Phaser.Physics.Arcade.Sprite;
+        const coin = this.coinGroup.get(
+            spawnX,
+            spawnY,
+            "coin",
+        ) as Phaser.Physics.Arcade.Sprite;
         if (!coin) return;
 
         coin.setActive(true).setVisible(true);
@@ -776,34 +782,35 @@ export abstract class BaseScene extends Scene {
     }
 
     private createCollectibles(map: Phaser.Tilemaps.Tilemap) {
-        const fruitPoints = map.filterObjects(
+        const xpCollectibles = map.filterObjects(
             "collectibles",
-            (obj) => obj.name !== "Strawberry",
+            (obj) => obj.name === "xp",
         );
 
-        fruitPoints?.forEach((point) => {
-            const f = this.collectiblesGroup.create(
-                point.x,
-                point.y,
-                "strawberry",
-            );
-            f.play("strawberry_idle");
-            f.body?.setSize(14, 14);
-            f.body?.setOffset(9, 9);
+        xpCollectibles?.forEach((point) => {
+            const f = this.collectiblesGroup.create(point.x, point.y, "xp");
+            // resize
+            f.setScale(0.5);
         });
-        this.physics.add.overlap(
-            this.player,
-            this.collectiblesGroup,
-            (_p, f) => {
-                const fruit = f as Phaser.Physics.Arcade.Sprite;
-                if (fruit.body) fruit.body.enable = false;
-                this.sounds.collect.play();
-                fruit.play("collected");
-                fruit.on("animationcomplete", () => {
-                    fruit.destroy();
-                });
-            },
-        );
+        if (this.coinGroup) {
+            this.physics.add.overlap(
+                this.coinGroup,
+                this.collectiblesGroup,
+                (coin, f) => {
+                    const fruit = f as Phaser.Physics.Arcade.Sprite;
+                    const coinSprite = coin as Phaser.Physics.Arcade.Sprite;
+
+                    if (fruit.body) fruit.body.enable = false;
+                    coinSprite.destroy();
+
+                    this.sounds.collect.play();
+                    fruit.play("collected", true);
+                    fruit.on("animationcomplete", () => {
+                        fruit.destroy();
+                    });
+                },
+            );
+        }
     }
 
     private DECORATIONS: {

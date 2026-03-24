@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="164" height="64" tilewidth="16" tileheight="16" infinite="0" nextlayerid="4" nextobjectid="4">
+<map version="1.10" tiledversion="1.11.2" orientation="orthogonal" renderorder="right-down" width="164" height="64" tilewidth="16" tileheight="16" infinite="0" nextlayerid="5" nextobjectid="7">
  <editorsettings>
   <export target="map/level_agiota_start.json" format="json"/>
  </editorsettings>
@@ -111,7 +111,7 @@
 </data>
  </layer>
  <objectgroup id="2" name="player">
-  <object id="1" name="PlayerSpawn" x="399.122" y="221.425">
+  <object id="1" name="PlayerSpawn" x="396.834" y="665.641">
    <point/>
   </object>
  </objectgroup>
@@ -120,6 +120,17 @@
    <point/>
   </object>
   <object id="3" name="bank" x="400" y="124">
+   <point/>
+  </object>
+ </objectgroup>
+ <objectgroup id="4" name="collectibles">
+  <object id="4" name="xp" x="221.917" y="601.312">
+   <point/>
+  </object>
+  <object id="5" name="xp" x="303.897" y="757.264">
+   <point/>
+  </object>
+  <object id="6" name="xp" x="526.958" y="657.363">
    <point/>
   </object>
  </objectgroup>

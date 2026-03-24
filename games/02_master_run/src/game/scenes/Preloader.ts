@@ -35,6 +35,11 @@ export class Preloader extends Scene {
         this.load.image("terrain-tiles", "terrain.png");
         this.load.image("blue-img", "map/Water Background color.png");
 
+        this.load.spritesheet("xp", "vorc/xp.png", {
+            frameWidth: 51,
+            frameHeight: 48,
+        });
+
         this.load.spritesheet("strawberry", "Strawberry.png", {
             frameWidth: 32,
             frameHeight: 32,

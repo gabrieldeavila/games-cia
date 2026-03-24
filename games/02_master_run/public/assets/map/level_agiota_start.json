@@ -91,8 +91,8 @@
                  "type":"",
                  "visible":true,
                  "width":0,
-                 "x":399.122,
-                 "y":221.425
+                 "x":396.834194005948,
+                 "y":665.640663845039
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -134,9 +134,56 @@
          "visible":true,
          "x":0,
          "y":0
+        }, 
+        {
+         "draworder":"topdown",
+         "id":4,
+         "name":"collectibles",
+         "objects":[
+                {
+                 "height":0,
+                 "id":4,
+                 "name":"xp",
+                 "point":true,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":221.917181423015,
+                 "y":601.31167543659
+                }, 
+                {
+                 "height":0,
+                 "id":5,
+                 "name":"xp",
+                 "point":true,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":303.896896209868,
+                 "y":757.263784031114
+                }, 
+                {
+                 "height":0,
+                 "id":6,
+                 "name":"xp",
+                 "point":true,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":526.957980629909,
+                 "y":657.362922290856
+                }],
+         "opacity":1,
+         "type":"objectgroup",
+         "visible":true,
+         "x":0,
+         "y":0
         }],
- "nextlayerid":4,
- "nextobjectid":4,
+ "nextlayerid":5,
+ "nextobjectid":7,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",
