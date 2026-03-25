@@ -504,6 +504,9 @@ export abstract class BaseScene extends Scene {
         ) as Phaser.Physics.Arcade.Sprite;
         if (!coin) return;
 
+        // coin sound triggered once when actual coin is thrown
+        this.sounds.coin.play({ rate: 0.8, loop: false });
+
         coin.setActive(true).setVisible(true);
         coin.setScale(0.26); // coin maior para ficar legível
         coin.setDepth(2);
@@ -566,6 +569,11 @@ export abstract class BaseScene extends Scene {
         this.sounds.collect = this.sound.add("pickup_sfx", { volume: 0.4 });
         this.sounds.step = this.sound.add("step_sfx", { volume: 0.3 });
         this.sounds.slide = this.sound.add("slide_sfx", { volume: 0.2 });
+        this.sounds.coin = this.sound.add("coin_sfx", {
+            volume: 1,
+            rate: 0.6,
+            loop: false,
+        });
 
         this.bgMusic = this.sound.add(config.bgMusicKey, {
             volume: 0.1,
@@ -616,7 +624,6 @@ export abstract class BaseScene extends Scene {
 
         if (keys.e.isDown && !this.isThrowingCoin) {
             this.isThrowingCoin = true;
-            console.log("Lançando moeda!");
         }
 
         if (keys.w.isDown || cursors.up.isDown || mobile.jump) {
