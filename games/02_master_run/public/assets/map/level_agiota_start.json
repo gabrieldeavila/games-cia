@@ -175,6 +175,18 @@
                  "width":0,
                  "x":526.958,
                  "y":657.363
+                }, 
+                {
+                 "height":0,
+                 "id":7,
+                 "name":"sugar",
+                 "point":true,
+                 "rotation":0,
+                 "type":"",
+                 "visible":true,
+                 "width":0,
+                 "x":410.285498203819,
+                 "y":770.467006995651
                 }],
          "opacity":1,
          "type":"objectgroup",
@@ -183,7 +195,7 @@
          "y":0
         }],
  "nextlayerid":5,
- "nextobjectid":7,
+ "nextobjectid":8,
  "orientation":"orthogonal",
  "renderorder":"right-down",
  "tiledversion":"1.11.2",

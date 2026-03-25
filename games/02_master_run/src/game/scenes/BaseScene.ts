@@ -793,15 +793,33 @@ export abstract class BaseScene extends Scene {
     }
 
     private createCollectibles(map: Phaser.Tilemaps.Tilemap) {
-        const xpCollectibles = map.filterObjects(
-            "collectibles",
-            (obj) => obj.name === "xp",
-        );
+        const collectibleObjects = map.filterObjects("collectibles", () => true);
 
-        xpCollectibles?.forEach((point) => {
-            const f = this.collectiblesGroup.create(point.x, point.y, "xp");
-            // resize
+        collectibleObjects?.forEach((point) => {
+            const type = String(point.name || "").trim();
+            if (!type) {
+                console.warn(
+                    "Aviso: coletável sem nome no layer 'collectibles'.",
+                );
+                return;
+            }
+
+            if (!this.textures.exists(type)) {
+                console.warn(
+                    `Aviso: textura de coletável '${type}' não encontrada.`,
+                );
+                return;
+            }
+
+            const f = this.collectiblesGroup.create(
+                point.x,
+                point.y,
+                type,
+            ) as Phaser.Physics.Arcade.Sprite;
+
+            // padrão: 50% de escala (pode ser alterado manualmente depois)
             f.setScale(0.5);
+
             if (f.body) {
                 const body = f.body as Phaser.Physics.Arcade.Body;
                 body.setImmovable(true);
