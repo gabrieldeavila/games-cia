@@ -281,6 +281,10 @@ export abstract class BaseScene extends Scene {
             );
         }
 
+        if (this.player && this.collectiblesGroup) {
+            this.physics.add.collider(this.player, this.collectiblesGroup);
+        }
+
         if (this.coinGroup && this.mobsGroup) {
             this.physics.add.overlap(
                 this.coinGroup,
@@ -798,7 +802,12 @@ export abstract class BaseScene extends Scene {
             const f = this.collectiblesGroup.create(point.x, point.y, "xp");
             // resize
             f.setScale(0.5);
+            if (f.body) {
+                const body = f.body as Phaser.Physics.Arcade.Body;
+                body.setImmovable(true);
+            }
         });
+
         if (this.coinGroup) {
             this.physics.add.overlap(
                 this.coinGroup,
