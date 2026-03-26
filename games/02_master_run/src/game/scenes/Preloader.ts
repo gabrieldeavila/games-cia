@@ -43,6 +43,10 @@ export class Preloader extends Scene {
             frameWidth: 49,
             frameHeight: 48,
         });
+        this.load.spritesheet("republica", "vorc/republica.png", {
+            frameWidth: 69,
+            frameHeight: 70,
+        });
 
         this.load.spritesheet("strawberry", "Strawberry.png", {
             frameWidth: 32,
