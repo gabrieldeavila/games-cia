@@ -24,7 +24,8 @@ export abstract class BaseScene extends Scene {
     protected worldLayer: Phaser.Tilemaps.TilemapLayer;
     protected doorLayer: Phaser.Tilemaps.TilemapLayer;
     protected limitsLayer: Phaser.Tilemaps.TilemapLayer;
-    protected closedDoorLayer: Phaser.Tilemaps.TilemapLayer;
+    protected closedDoorLayer?: Phaser.Tilemaps.TilemapLayer;
+    protected openDoorLayer?: Phaser.Tilemaps.TilemapLayer;
 
     protected backgroundLayers: Phaser.Tilemaps.TilemapLayer[] = [];
 
@@ -58,6 +59,10 @@ export abstract class BaseScene extends Scene {
     protected coinGroup: Phaser.Physics.Arcade.Group;
     protected finishPoint: Phaser.Physics.Arcade.Sprite;
 
+    // Collectible counter
+    protected totalCollectibles: number = 0;
+    protected collectedCollectibles: number = 0;
+
     // Áudio
     protected sounds: { [key: string]: Phaser.Sound.BaseSound } = {};
     protected bgMusic: Phaser.Sound.BaseSound;
@@ -81,7 +86,8 @@ export abstract class BaseScene extends Scene {
         this.setupMap(config);
 
         this.createFoamAnimation();
-        this.generateFoamBorder();
+        this.generateFoamBorder(this.limitsLayer);
+        this.generateFoamBorder(this.closedDoorLayer!);
 
         this.setupControls();
         this.setupPlayerAndFinish();
@@ -185,13 +191,25 @@ export abstract class BaseScene extends Scene {
         });
 
         this.doorLayer = this.map.createLayer("door", allTilesets, 0, 0)!;
+        this.doorLayer.setVisible(false);
+
         this.limitsLayer = this.map.createLayer("limits", allTilesets, 0, 0)!;
+
         this.closedDoorLayer = this.map.createLayer(
             "closed_door_limits",
             allTilesets,
             0,
             0,
         )!;
+        this.closedDoorLayer.setVisible(true);
+
+        this.openDoorLayer = this.map.createLayer(
+            "open_door_limits",
+            allTilesets,
+            0,
+            0,
+        )!;
+        this.openDoorLayer.setVisible(false);
     }
 
     // --- LÓGICA DA ESPUMA ---
@@ -216,20 +234,20 @@ export abstract class BaseScene extends Scene {
         });
     }
 
-    private generateFoamBorder() {
-        if (!this.limitsLayer) return;
+    private generateFoamBorder(layer: Phaser.Tilemaps.TilemapLayer) {
+        if (!layer) return;
 
         this.foamGroup = this.add.group();
         let foamCount = 0;
         const tileWidth = this.map.tileWidth;
         const tileHeight = this.map.tileHeight;
 
-        this.limitsLayer.forEachTile((tile) => {
+        layer.forEachTile((tile) => {
             if (tile.index === -1) {
-                const up = this.limitsLayer.getTileAt(tile.x, tile.y - 1);
-                const down = this.limitsLayer.getTileAt(tile.x, tile.y + 1);
-                const left = this.limitsLayer.getTileAt(tile.x - 1, tile.y);
-                const right = this.limitsLayer.getTileAt(tile.x + 1, tile.y);
+                const up = layer.getTileAt(tile.x, tile.y - 1);
+                const down = layer.getTileAt(tile.x, tile.y + 1);
+                const left = layer.getTileAt(tile.x - 1, tile.y);
+                const right = layer.getTileAt(tile.x + 1, tile.y);
 
                 const hasLandUp = up && up.index !== -1;
                 const hasLandDown = down && down.index !== -1;
@@ -281,12 +299,17 @@ export abstract class BaseScene extends Scene {
         if (this.player && this.worldLayer) {
             this.physics.add.collider(this.player, this.worldLayer);
         }
-        if (this.player && this.doorLayer) {
-            this.doorLayer.setCollisionByExclusion([-1]);
-            console.log("Adicionando colisão entre player e doorLayer");
-            this.physics.add.collider(this.player, this.doorLayer, () => {
-                console.log("player colidiu com doorLayer");
+        if (this.player && this.closedDoorLayer) {
+            this.closedDoorLayer.setCollisionByExclusion([-1]);
+            console.log("Adicionando colisão entre player e closedDoorLayer");
+            this.physics.add.collider(this.player, this.closedDoorLayer, () => {
+                console.log("player colidiu com closedDoorLayer");
             });
+        }
+
+        // doorLayer is initially hidden, becomes visible when collectibles are done
+        if (this.player && this.doorLayer) {
+            this.doorLayer.setVisible(false);
         }
 
         if (this.player && this.limitsLayer) {
@@ -584,6 +607,32 @@ export abstract class BaseScene extends Scene {
         }
     }
 
+    protected openDoor() {
+        console.log("All collectibles collected! Opening door.");
+
+        if (this.closedDoorLayer) {
+            // this.closedDoorLayer.destroy();
+            // this.closedDoorLayer = undefined as unknown as Phaser.Tilemaps.TilemapLayer;
+            this.closedDoorLayer.setVisible(false);
+            this.closedDoorLayer.removeCollidesWith(-1);
+        }
+
+        if (this.doorLayer) {
+            this.doorLayer.setVisible(true);
+            // this.doorLayer.setCollisionByExclusion([-1]);
+            console.log("doorLayer is now visible");
+        }
+
+        if (this.openDoorLayer) {
+            this.openDoorLayer.setVisible(true);
+            this.openDoorLayer.setCollisionByExclusion([-1]);
+            this.physics.add.collider(this.player, this.openDoorLayer, () => {
+                console.log("player colidiu com openDoorLayer");
+            });
+            this.generateFoamBorder(this.openDoorLayer!);
+        }
+    }
+
     protected afterCreate() {}
 
     private setupControls() {
@@ -865,6 +914,8 @@ export abstract class BaseScene extends Scene {
             }
         });
 
+        this.totalCollectibles = this.collectiblesGroup.getLength();
+
         if (this.coinGroup) {
             this.physics.add.overlap(
                 this.coinGroup,
@@ -876,10 +927,19 @@ export abstract class BaseScene extends Scene {
                     if (fruit.body) fruit.body.enable = false;
                     coinSprite.destroy();
 
+                    this.collectedCollectibles += 1;
+                    console.log(
+                        `${this.collectedCollectibles} of ${this.totalCollectibles} collectibles`,
+                    );
+
                     this.sounds.collect.play();
                     fruit.play("collected", true);
                     fruit.on("animationcomplete", () => {
                         fruit.destroy();
+
+                        if (this.collectedCollectibles >= 1) {
+                            this.openDoor();
+                        }
                     });
                 },
             );
