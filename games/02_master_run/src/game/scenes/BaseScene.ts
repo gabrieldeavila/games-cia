@@ -22,6 +22,10 @@ export abstract class BaseScene extends Scene {
     // Camadas e Mapa
     protected map: Phaser.Tilemaps.Tilemap;
     protected worldLayer: Phaser.Tilemaps.TilemapLayer;
+    protected doorLayer: Phaser.Tilemaps.TilemapLayer;
+    protected limitsLayer: Phaser.Tilemaps.TilemapLayer;
+    protected closedDoorLayer: Phaser.Tilemaps.TilemapLayer;
+
     protected backgroundLayers: Phaser.Tilemaps.TilemapLayer[] = [];
 
     // Fundo Infinito
@@ -122,6 +126,7 @@ export abstract class BaseScene extends Scene {
     }
 
     private setupMap(config: LevelConfig) {
+        console.log("BRO");
         this.map = this.make.tilemap({ key: config.mapId });
 
         const allTilesets: Phaser.Tilemaps.Tileset[] =
@@ -130,6 +135,12 @@ export abstract class BaseScene extends Scene {
 
                 return tileset!;
             });
+
+        console.log(
+            "Tilesets carregados:",
+            allTilesets.map((t) => t.name).join(", "),
+            config.tileSetTerrains,
+        );
 
         const bgKey = config.blueTileKey || config.tileSetBackground;
         const tilesetBlue = this.map.addTilesetImage("Blue back", bgKey);
@@ -162,6 +173,9 @@ export abstract class BaseScene extends Scene {
         this.worldLayer.setCollisionByProperty({ collides: true });
         this.worldLayer.setDepth(0);
 
+        // Improve tile collision overlap handling (especially for 16x16 tile walls).
+        this.physics.world.TILE_BIAS = 64;
+
         this.physics.world.gravity.y = 0;
 
         this.worldLayer.forEachTile((tile) => {
@@ -169,6 +183,15 @@ export abstract class BaseScene extends Scene {
                 tile.setCollision(false, false, true, false);
             }
         });
+
+        this.doorLayer = this.map.createLayer("door", allTilesets, 0, 0)!;
+        this.limitsLayer = this.map.createLayer("limits", allTilesets, 0, 0)!;
+        this.closedDoorLayer = this.map.createLayer(
+            "closed_door_limits",
+            allTilesets,
+            0,
+            0,
+        )!;
     }
 
     // --- LÓGICA DA ESPUMA ---
@@ -185,9 +208,6 @@ export abstract class BaseScene extends Scene {
             this.anims.remove("foam_anim");
         }
 
-        const texture = this.textures.get("water_foam");
-        const source = texture.getSourceImage();
-
         this.anims.create({
             key: "foam_anim",
             frames: this.anims.generateFrameNumbers("water_foam", {}),
@@ -197,19 +217,19 @@ export abstract class BaseScene extends Scene {
     }
 
     private generateFoamBorder() {
-        if (!this.worldLayer) return;
+        if (!this.limitsLayer) return;
 
         this.foamGroup = this.add.group();
         let foamCount = 0;
         const tileWidth = this.map.tileWidth;
         const tileHeight = this.map.tileHeight;
 
-        this.worldLayer.forEachTile((tile) => {
+        this.limitsLayer.forEachTile((tile) => {
             if (tile.index === -1) {
-                const up = this.worldLayer.getTileAt(tile.x, tile.y - 1);
-                const down = this.worldLayer.getTileAt(tile.x, tile.y + 1);
-                const left = this.worldLayer.getTileAt(tile.x - 1, tile.y);
-                const right = this.worldLayer.getTileAt(tile.x + 1, tile.y);
+                const up = this.limitsLayer.getTileAt(tile.x, tile.y - 1);
+                const down = this.limitsLayer.getTileAt(tile.x, tile.y + 1);
+                const left = this.limitsLayer.getTileAt(tile.x - 1, tile.y);
+                const right = this.limitsLayer.getTileAt(tile.x + 1, tile.y);
 
                 const hasLandUp = up && up.index !== -1;
                 const hasLandDown = down && down.index !== -1;
@@ -261,16 +281,32 @@ export abstract class BaseScene extends Scene {
         if (this.player && this.worldLayer) {
             this.physics.add.collider(this.player, this.worldLayer);
         }
+        if (this.player && this.doorLayer) {
+            this.doorLayer.setCollisionByExclusion([-1]);
+            console.log("Adicionando colisão entre player e doorLayer");
+            this.physics.add.collider(this.player, this.doorLayer, () => {
+                console.log("player colidiu com doorLayer");
+            });
+        }
+
+        if (this.player && this.limitsLayer) {
+            this.limitsLayer.setCollisionByExclusion([-1]);
+            console.log("Adicionando colisão entre player e limitsLayer");
+            this.physics.add.collider(this.player, this.limitsLayer, () => {
+                console.log("player colidiu com limitsLayer");
+            });
+        }
+
         if (this.finishPoint && this.worldLayer) {
             this.physics.add.collider(this.finishPoint, this.worldLayer);
         }
+
         if (this.mobsGroup && this.worldLayer) {
             this.physics.add.collider(this.mobsGroup, this.worldLayer);
             this.physics.add.overlap(this.player, this.mobsGroup, () => {
                 this.onPlayerDeath();
             });
         }
-
         if (this.coinGroup && this.worldLayer) {
             this.physics.add.collider(
                 this.coinGroup,
@@ -324,7 +360,7 @@ export abstract class BaseScene extends Scene {
         );
         this.player.body?.setOffset(6, 21);
 
-        this.player.setCollideWorldBounds(true);
+        // this.player.setCollideWorldBounds(true);
         this.player.setDepth(2);
 
         if (finishData) {
@@ -398,7 +434,7 @@ export abstract class BaseScene extends Scene {
         this.handleAnimations();
         this.handleGroundEffects();
         this.handleMobsAI();
-        this.checkMapBounds();
+        // this.checkMapBounds();
         this.handleWaterAnimation();
 
         if (this.coinGroup) {
@@ -793,7 +829,10 @@ export abstract class BaseScene extends Scene {
     }
 
     private createCollectibles(map: Phaser.Tilemaps.Tilemap) {
-        const collectibleObjects = map.filterObjects("collectibles", () => true);
+        const collectibleObjects = map.filterObjects(
+            "collectibles",
+            () => true,
+        );
 
         collectibleObjects?.forEach((point) => {
             const type = String(point.name || "").trim();
