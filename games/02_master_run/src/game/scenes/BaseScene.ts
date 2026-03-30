@@ -16,6 +16,7 @@ export interface LevelConfig {
 export abstract class BaseScene extends Scene {
     // Referências do Player
     protected player: Phaser.Physics.Arcade.Sprite;
+    protected ship?: Phaser.Physics.Arcade.Sprite;
     protected cursors: Phaser.Types.Input.Keyboard.CursorKeys;
     protected keys: any;
 
@@ -312,6 +313,12 @@ export abstract class BaseScene extends Scene {
             this.doorLayer.setVisible(false);
         }
 
+        // if (this.player && this.ship) {
+        //     this.physics.add.collider(this.player, this.ship, () => {
+        //         console.log("player colidiu com ship");
+        //     });
+        // }
+
         if (this.player && this.limitsLayer) {
             this.limitsLayer.setCollisionByExclusion([-1]);
             console.log("Adicionando colisão entre player e limitsLayer");
@@ -383,6 +390,27 @@ export abstract class BaseScene extends Scene {
         );
         this.player.body?.setOffset(6, 21);
 
+        const shipData = playerLayer?.objects.find(
+            (obj) => obj.name === "ship",
+        );
+        console.log(shipData);
+
+        if (shipData?.x !== undefined && shipData?.y !== undefined) {
+            this.ship = this.physics.add.sprite(shipData.x, shipData.y, "ship");
+            this.ship.setDepth(1);
+            this.ship.setVisible(true);
+            if (this.ship.body) {
+                const shipBody = this.ship.body as Phaser.Physics.Arcade.Body;
+                shipBody.setImmovable(true);
+                shipBody.setAllowGravity(false);
+                shipBody.enable = false;
+
+                // add collider with player to ship
+                this.physics.add.overlap(this.player, this.ship, () => {
+                    console.log("player colidiu com ship");
+                });
+            }
+        }
         // this.player.setCollideWorldBounds(true);
         this.player.setDepth(2);
 
@@ -611,15 +639,13 @@ export abstract class BaseScene extends Scene {
         console.log("All collectibles collected! Opening door.");
 
         if (this.closedDoorLayer) {
-            // this.closedDoorLayer.destroy();
-            // this.closedDoorLayer = undefined as unknown as Phaser.Tilemaps.TilemapLayer;
             this.closedDoorLayer.setVisible(false);
             this.closedDoorLayer.removeCollidesWith(-1);
         }
 
         if (this.doorLayer) {
             this.doorLayer.setVisible(true);
-            // this.doorLayer.setCollisionByExclusion([-1]);
+            this.doorLayer.setCollisionByExclusion([-1]);
             console.log("doorLayer is now visible");
         }
 
@@ -937,7 +963,10 @@ export abstract class BaseScene extends Scene {
                     fruit.on("animationcomplete", () => {
                         fruit.destroy();
 
-                        if (this.collectedCollectibles >= 1) {
+                        if (
+                            this.collectedCollectibles >= this.totalCollectibles
+                            // this.collectedCollectibles >= 1
+                        ) {
                             this.openDoor();
                         }
                     });
