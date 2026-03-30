@@ -31,6 +31,7 @@ const baseConfig: Phaser.Types.Core.GameConfig = {
 const StartGame = (
     parent: string,
     controlsRef: GameInputContextData["controlsRef"],
+    setCollectibles?: (collected: number, total: number) => void,
 ) => {
     return new Game({
         ...baseConfig,
@@ -38,6 +39,9 @@ const StartGame = (
         callbacks: {
             preBoot: (game) => {
                 game.registry.set("controlsRef", controlsRef);
+                if (setCollectibles) {
+                    game.registry.set("setCollectibles", setCollectibles);
+                }
             },
         },
     });

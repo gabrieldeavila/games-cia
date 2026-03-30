@@ -70,6 +70,7 @@ export abstract class BaseScene extends Scene {
 
     // Contexto Mobile
     protected mobileControlsRef: GameInputContextData["controlsRef"];
+    protected setCollectibles?: (collected: number, total: number) => void;
 
     constructor(key: string) {
         super(key);
@@ -80,6 +81,7 @@ export abstract class BaseScene extends Scene {
     create() {
         const config = this.getLevelConfig();
         this.mobileControlsRef = this.registry.get("controlsRef");
+        this.setCollectibles = this.registry.get("setCollectibles");
 
         this.cameras.main.roundPixels = true;
 
@@ -615,7 +617,6 @@ export abstract class BaseScene extends Scene {
     }
 
     protected onPlayerDeath() {
-        console.log("Player morreu!");
         this.sounds.fall?.play();
         this.cameras.main.shake(200, 0.01);
 
@@ -941,6 +942,7 @@ export abstract class BaseScene extends Scene {
         });
 
         this.totalCollectibles = this.collectiblesGroup.getLength();
+        this.setCollectibles?.(this.collectedCollectibles, this.totalCollectibles);
 
         if (this.coinGroup) {
             this.physics.add.overlap(
@@ -954,6 +956,10 @@ export abstract class BaseScene extends Scene {
                     coinSprite.destroy();
 
                     this.collectedCollectibles += 1;
+                    this.setCollectibles?.(
+                        this.collectedCollectibles,
+                        this.totalCollectibles,
+                    );
                     console.log(
                         `${this.collectedCollectibles} of ${this.totalCollectibles} collectibles`,
                     );

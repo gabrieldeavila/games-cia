@@ -12,17 +12,21 @@ export const PhaserGame = forwardRef<IRefPhaserGame>(function PhaserGame(
     ref,
 ) {
     const game = useRef<Phaser.Game | null>(null!);
-    const { controlsRef } = useGameInput();
+    const { controlsRef, setCollectibles } = useGameInput();
 
     useLayoutEffect(() => {
         if (game.current === null) {
-            game.current = StartGame("game-container", controlsRef);
+            game.current = StartGame(
+                "game-container",
+                controlsRef,
+                setCollectibles,
+            );
+        }
 
-            if (typeof ref === "function") {
-                ref({ game: game.current, scene: null });
-            } else if (ref) {
-                ref.current = { game: game.current, scene: null };
-            }
+        if (typeof ref === "function") {
+            ref({ game: game.current, scene: null });
+        } else if (ref) {
+            ref.current = { game: game.current, scene: null };
         }
 
         return () => {
