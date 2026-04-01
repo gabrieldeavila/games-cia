@@ -1,7 +1,7 @@
 import { Boot } from "./scenes/Boot";
 import { GameOver } from "./scenes/GameOver";
 import { Game as MainGame } from "./scenes/Game";
-import { MainMenu } from "./scenes/MainMenu";
+// import { MainMenu } from "./scenes/MainMenu"; // not used: start screen is in React
 import { AUTO, Game } from "phaser";
 import { Preloader } from "./scenes/Preloader";
 import { GameInputContextData } from "../context/game";
@@ -14,7 +14,11 @@ const baseConfig: Phaser.Types.Core.GameConfig = {
     height: window.innerHeight,
     parent: "game-container",
     backgroundColor: "#028af8",
-    scene: [Boot, Preloader, MainMenu, MainGame, GameOver],
+    scale: {
+        mode: Phaser.Scale.ScaleModes.RESIZE,
+        autoCenter: Phaser.Scale.CENTER_BOTH,
+    },
+    scene: [Boot, Preloader, MainGame, GameOver],
     render: {
         pixelArt: true,
         antialias: false,
