@@ -17,9 +17,14 @@ function App() {
             {!started ? (
                 <div id="start-screen">
                     <div className="start-overlay">
-                        <h1 className="start-title">Ready to play?</h1>
-                        <button className="button ready-button" onClick={onStart}>
-                            {'<< READY >>'}
+                        <h1 className="start-title">
+                            Compre influência e quebre a banca.
+                        </h1>
+                        <button
+                            className="button ready-button"
+                            onClick={onStart}
+                        >
+                            Iniciar Operação
                         </button>
                     </div>
                 </div>
