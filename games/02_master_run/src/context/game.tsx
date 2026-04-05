@@ -19,6 +19,8 @@ export interface GameInputContextData {
     setControl: (action: ControlAction, isActive: boolean) => void;
     collectibles: CollectibleState;
     setCollectibles: (collected: number, total: number) => void;
+    gameComplete: boolean;
+    setGameComplete: (complete: boolean) => void;
 }
 
 const GameInputContext = createContext<GameInputContextData | null>(null);
@@ -36,6 +38,7 @@ export const GameInputProvider: React.FC<{ children: React.ReactNode }> = ({
     const [collectibles, setCollectiblesState] = React.useState<CollectibleState>(
         { collected: 0, total: 0 },
     );
+    const [gameComplete, setGameCompleteState] = React.useState(false);
 
     const setControl = useCallback(
         (action: ControlAction, isActive: boolean) => {
@@ -51,9 +54,20 @@ export const GameInputProvider: React.FC<{ children: React.ReactNode }> = ({
         [],
     );
 
+    const setGameComplete = useCallback((complete: boolean) => {
+        setGameCompleteState(complete);
+    }, []);
+
     return (
         <GameInputContext.Provider
-            value={{ controlsRef, setControl, collectibles, setCollectibles }}
+            value={{
+                controlsRef,
+                setControl,
+                collectibles,
+                setCollectibles,
+                gameComplete,
+                setGameComplete,
+            }}
         >
             {children}
         </GameInputContext.Provider>

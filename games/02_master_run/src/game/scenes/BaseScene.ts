@@ -71,6 +71,9 @@ export abstract class BaseScene extends Scene {
     // Contexto Mobile
     protected mobileControlsRef: GameInputContextData["controlsRef"];
     protected setCollectibles?: (collected: number, total: number) => void;
+    protected setGameComplete?: (complete: boolean) => void;
+
+    private gameCompleted: boolean = false;
 
     constructor(key: string) {
         super(key);
@@ -82,6 +85,7 @@ export abstract class BaseScene extends Scene {
         const config = this.getLevelConfig();
         this.mobileControlsRef = this.registry.get("controlsRef");
         this.setCollectibles = this.registry.get("setCollectibles");
+        this.setGameComplete = this.registry.get("setGameComplete");
 
         this.cameras.main.roundPixels = true;
 
@@ -405,12 +409,16 @@ export abstract class BaseScene extends Scene {
                 const shipBody = this.ship.body as Phaser.Physics.Arcade.Body;
                 shipBody.setImmovable(true);
                 shipBody.setAllowGravity(false);
-                shipBody.enable = false;
+                shipBody.enable = true;
+                shipBody.setSize(this.ship.width, this.ship.height);
 
-                // add collider with player to ship
-                this.physics.add.overlap(this.player, this.ship, () => {
-                    console.log("player colidiu com ship");
-                });
+                this.physics.add.overlap(
+                    this.player,
+                    this.ship,
+                    () => this.onShipReached(),
+                    undefined,
+                    this,
+                );
             }
         }
         // this.player.setCollideWorldBounds(true);
@@ -634,6 +642,22 @@ export abstract class BaseScene extends Scene {
         if (this.player.body) {
             this.player.body.enable = false;
         }
+    }
+
+    protected onShipReached() {
+        if (this.gameCompleted) {
+            return;
+        }
+
+        this.gameCompleted = true;
+        this.player.setVelocity(0);
+        if (this.player.body) {
+            this.player.body.enable = false;
+        }
+
+        this.physics.pause();
+        this.cameras.main.flash(300, 255, 255, 255);
+        this.setGameComplete?.(true);
     }
 
     protected openDoor() {

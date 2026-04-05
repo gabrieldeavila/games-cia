@@ -36,6 +36,7 @@ const StartGame = (
     parent: string,
     controlsRef: GameInputContextData["controlsRef"],
     setCollectibles?: (collected: number, total: number) => void,
+    setGameComplete?: (complete: boolean) => void,
 ) => {
     return new Game({
         ...baseConfig,
@@ -45,6 +46,9 @@ const StartGame = (
                 game.registry.set("controlsRef", controlsRef);
                 if (setCollectibles) {
                     game.registry.set("setCollectibles", setCollectibles);
+                }
+                if (setGameComplete) {
+                    game.registry.set("setGameComplete", setGameComplete);
                 }
             },
         },

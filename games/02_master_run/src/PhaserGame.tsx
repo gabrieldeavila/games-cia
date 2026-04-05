@@ -12,7 +12,7 @@ export const PhaserGame = forwardRef<IRefPhaserGame>(function PhaserGame(
     ref,
 ) {
     const game = useRef<Phaser.Game | null>(null!);
-    const { controlsRef, setCollectibles } = useGameInput();
+    const { controlsRef, setCollectibles, setGameComplete } = useGameInput();
 
     useLayoutEffect(() => {
         if (game.current === null) {
@@ -20,6 +20,7 @@ export const PhaserGame = forwardRef<IRefPhaserGame>(function PhaserGame(
                 "game-container",
                 controlsRef,
                 setCollectibles,
+                setGameComplete,
             );
         }
 
