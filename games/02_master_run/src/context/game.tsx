@@ -1,11 +1,12 @@
 import React, { createContext, useContext, useRef, useCallback } from "react";
 
-export type ControlAction = "left" | "right" | "jump" | "attack";
+export type ControlAction = "left" | "right" | "up" | "down" | "attack";
 
 export interface InputState {
     left: boolean;
     right: boolean;
-    jump: boolean;
+    up: boolean;
+    down: boolean;
     attack: boolean;
 }
 
@@ -31,7 +32,8 @@ export const GameInputProvider: React.FC<{ children: React.ReactNode }> = ({
     const controlsRef = useRef<InputState>({
         left: false,
         right: false,
-        jump: false,
+        up: false,
+        down: false,
         attack: false,
     });
 

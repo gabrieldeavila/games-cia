@@ -762,13 +762,13 @@ export abstract class BaseScene extends Scene {
         const cursors = this.cursors;
         const mobile = this.mobileControlsRef.current;
 
-        if (keys.e.isDown && !this.isThrowingCoin) {
+        if ((keys.e.isDown || mobile.attack) && !this.isThrowingCoin) {
             this.isThrowingCoin = true;
         }
 
-        if (keys.w.isDown || cursors.up.isDown || mobile.jump) {
+        if (keys.w.isDown || cursors.up.isDown || mobile.up) {
             this.player.setVelocityY(-speed);
-        } else if (keys.s.isDown || cursors.down.isDown) {
+        } else if (keys.s.isDown || cursors.down.isDown || mobile.down) {
             this.player.setVelocityY(speed);
         }
 

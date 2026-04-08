@@ -1,10 +1,12 @@
 import {
+    FaLongArrowAltDown,
     FaLongArrowAltLeft,
     FaLongArrowAltRight,
     FaLongArrowAltUp,
 } from "react-icons/fa";
 import { useGameInput } from "../../context/game";
 import { useIsMobile } from "../../hooks/useIsMobile";
+import { GiThrowingBall } from "react-icons/gi";
 
 function Joystick() {
     const isMobile = useIsMobile();
@@ -42,11 +44,33 @@ function Joystick() {
                     display: "flex",
                 }}
             >
+                <div
+                    style={{
+                        position: "absolute",
+                        top: "-80px",
+                        right: "0%",
+                    }}
+                >
+                    <Button
+                        backgroundColor="rgba(255,0,0,0.3)"
+                        borderColor="#ff000066"
+                        icon={<FaLongArrowAltUp fill="#f8dfdf" />}
+                        controlName="up"
+                    />
+                </div>
+
+                <Button
+                    backgroundColor="rgba(254, 217, 54, 0.519)"
+                    borderColor="#ffe10066"
+                    icon={<GiThrowingBall fill="#f8f5df" />}
+                    controlName="attack"
+                />
+
                 <Button
                     backgroundColor="rgba(255,0,0,0.3)"
                     borderColor="#ff000066"
-                    icon={<FaLongArrowAltUp fill="#f8dfdf" />}
-                    controlName="jump"
+                    icon={<FaLongArrowAltDown fill="#f8dfdf" />}
+                    controlName="down"
                 />
             </div>
         </div>
@@ -62,7 +86,7 @@ const Button = ({
     borderColor,
 }: {
     icon: React.ReactNode;
-    controlName: "left" | "right" | "jump" | "attack";
+    controlName: "left" | "right" | "up" | "down" | "attack";
     backgroundColor?: string;
     borderColor?: string;
 }) => {
